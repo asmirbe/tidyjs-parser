@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 
-const resultsDir = path.resolve(__dirname, '../results');
+const resultsDir = path.resolve(__dirname, './results');
 if (!fs.existsSync(resultsDir)) {
   fs.mkdirSync(resultsDir, { recursive: true });
 }
@@ -15,9 +15,8 @@ function runTest(testFile: string, description: string) {
   console.log(`\n=== Exécution de ${description} ===`);
   console.log(`Fichier: ${testFile}`);
   console.log('');
-  
+
   try {
-  
     const output = execSync(`npx ts-node ${testFile}`, { encoding: 'utf-8' });
     console.log(output);
     return true;
