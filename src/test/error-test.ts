@@ -153,6 +153,7 @@ const allTestCases = [...errorCases, ...validCases];
 /**
  * Vérifie si le résultat du parsing correspond au comportement attendu
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function checkOutput(testCase: any, result: any) {
   const hasInvalidImports = result.invalidImports && result.invalidImports.length > 0;
 

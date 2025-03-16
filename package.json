@@ -5,7 +5,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "build-prod": "npm run check-types && npm run lint && node esbuild.js --production",
+    "check-types": "tsc --noEmit --project tsconfig.json",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "test": "ts-node src/test/runTest.ts",
@@ -20,6 +23,9 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "esbuild": "^0.25.0",
+    "esbuild-plugin-copy": "^2.1.1",
+    "esbuild-plugin-output-reset": "^2.0.2",
     "@babel/generator": "^7.26.10",
     "@babel/parser": "^7.26.10",
     "@types/babel__generator": "^7.6.8",
