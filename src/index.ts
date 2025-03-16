@@ -1,17 +1,7 @@
-import { validateAndFixImportWithBabel } from './fixer';
-import { ImportParser } from './parser';
-import { ImportParserError } from './errors';
-import {
-  ParserConfig,
-  ConfigImportGroup,
-  ImportGroup,
-  TypeOrder,
-  SourcePatterns,
-  InvalidImport,
-  ParserResult,
-  ParsedImport,
-  DEFAULT_CONFIG
-} from './types';
+import { validateAndFixImportWithBabel } from "./fixer";
+import { ImportParser } from "./parser";
+import { ImportParserError } from "./errors";
+import { ParserConfig, ConfigImportGroup, ImportGroup, TypeOrder, SourcePatterns, InvalidImport, ParserResult, ParsedImport, DEFAULT_CONFIG } from "./types";
 
 function parseImports(sourceCode: string, config: ParserConfig): ParserResult {
   const parser = new ImportParser(config);
@@ -21,21 +11,6 @@ function parseImports(sourceCode: string, config: ParserConfig): ParserResult {
   return { groups, originalImports, appSubfolders, invalidImports };
 }
 
-export {
-  ImportParser,
-  ImportParserError,
-  parseImports,
-  validateAndFixImportWithBabel,
-  DEFAULT_CONFIG
-};
+export { ImportParser, ImportParserError, parseImports, validateAndFixImportWithBabel, DEFAULT_CONFIG };
 
-export type {
-  ParserConfig,
-  ConfigImportGroup,
-  ImportGroup,
-  TypeOrder,
-  SourcePatterns,
-  InvalidImport,
-  ParserResult,
-  ParsedImport
-};
+export type { ParserConfig, ConfigImportGroup, ImportGroup, TypeOrder, SourcePatterns, InvalidImport, ParserResult, ParsedImport };

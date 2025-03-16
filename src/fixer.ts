@@ -1,5 +1,5 @@
-import { parse } from '@babel/parser';
-import generate from '@babel/generator';
+import { parse } from "@babel/parser";
+import generate from "@babel/generator";
 
 export interface FixResult {
   fixed: string | null;
@@ -8,7 +8,7 @@ export interface FixResult {
 }
 
 function fixDuplicateSpecifiers(importStmt: string): string | null {
-  if (!importStmt.includes('{')) {
+  if (!importStmt.includes("{")) {
     return importStmt;
   }
 
@@ -18,26 +18,26 @@ function fixDuplicateSpecifiers(importStmt: string): string | null {
       return importStmt;
     }
 
-    const [_, prefix, specifiersBlock, suffix] = importParts;
+    const [prefix, specifiersBlock, suffix] = importParts;
     const specifiersContent = specifiersBlock.substring(1, specifiersBlock.length - 1);
 
     const rawSpecifiers = specifiersContent
-      .split(',')
+      .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
 
     const uniqueSpecifiers = new Map<string, string>();
 
     for (const spec of rawSpecifiers) {
-      const isType = spec.startsWith('type ');
+      const isType = spec.startsWith("type ");
       const specWithoutType = isType ? spec.substring(5).trim() : spec;
 
       let key: string;
       const fullSpec = spec;
 
-      if (specWithoutType.includes(' as ')) {
-        const [name, _] = specWithoutType.split(' as ');
-        key = (isType ? 'type ' : '') + name.trim();
+      if (specWithoutType.includes(" as ")) {
+        const [name] = specWithoutType.split(" as ");
+        key = (isType ? "type " : "") + name.trim();
       } else {
         key = spec;
       }
@@ -47,7 +47,7 @@ function fixDuplicateSpecifiers(importStmt: string): string | null {
       }
     }
 
-    const correctedSpecifiers = Array.from(uniqueSpecifiers.values()).join(', ');
+    const correctedSpecifiers = Array.from(uniqueSpecifiers.values()).join(", ");
     const correctedImport = `${prefix}{${correctedSpecifiers}}${suffix}`;
 
     return correctedImport;
@@ -60,7 +60,7 @@ function normalizeDefaultImportAlias(importStmt: string): string {
   const defaultAliasMatch = importStmt.match(/import\s+(\w+)\s+as\s+(\w+)\s+from\s+['"]([^'"]+)['"]/);
 
   if (defaultAliasMatch) {
-    const [_, aliasName, moduleName] = defaultAliasMatch;
+    const [aliasName, moduleName] = defaultAliasMatch;
     return `import * as ${aliasName} from '${moduleName}';`;
   }
 
@@ -95,8 +95,8 @@ export function fixImportStatement(importStmt: string): FixResult {
     }
 
     const ast = parse(cleanedImport, {
-      sourceType: 'module',
-      plugins: ['typescript'],
+      sourceType: "module",
+      plugins: ["typescript"],
       errorRecovery: true,
     });
 
@@ -109,23 +109,23 @@ export function fixImportStatement(importStmt: string): FixResult {
         let errorMessage = error.toString();
 
         if (errorMessage.includes('Unexpected token, expected "from"')) {
-          if (cleanedImport.includes(' as ')) {
+          if (cleanedImport.includes(" as ")) {
             errorMessage +=
               "\nSuggestion: Si vous utilisez 'as' pour un alias, assurez-vous de la syntaxe correcte:" +
               "\n- Pour les imports nommés: import { Original as Alias } from 'module';" +
               "\n- Pour les imports d'espace de noms (namespace): import * as Alias from 'module';" +
               "\n- La syntaxe 'import Default as Alias from module' n'est pas standard en TypeScript/ES6.";
           }
-        } else if (errorMessage.includes('Unexpected token')) {
-          errorMessage += '\nVérifiez la syntaxe: Les accolades, virgules et point-virgules sont-ils correctement placés?';
-        } else if (errorMessage.includes('has already been declared')) {
-          errorMessage += '\nVous avez déclaré le même identificateur plusieurs fois dans le même import. ' + "Assurez-vous de ne pas avoir de doublons dans votre liste d'imports.";
+        } else if (errorMessage.includes("Unexpected token")) {
+          errorMessage += "\nVérifiez la syntaxe: Les accolades, virgules et point-virgules sont-ils correctement placés?";
+        } else if (errorMessage.includes("has already been declared")) {
+          errorMessage += "\nVous avez déclaré le même identificateur plusieurs fois dans le même import. " + "Assurez-vous de ne pas avoir de doublons dans votre liste d'imports.";
         }
 
         errors.push(errorMessage);
       });
 
-      if (errors.some((err) => err.includes('Unexpected token') || err.includes('Unexpected identifier') || err.includes('has already been declared'))) {
+      if (errors.some((err) => err.includes("Unexpected token") || err.includes("Unexpected identifier") || err.includes("has already been declared"))) {
         return {
           fixed: null,
           isValid: false,
@@ -138,35 +138,35 @@ export function fixImportStatement(importStmt: string): FixResult {
       retainLines: false,
       concise: false,
       jsescOption: {
-        quotes: 'single',
+        quotes: "single",
       },
     });
 
     let fixed = output.code.trim();
 
-    if (hasDefaultAlias && fixed.includes('* as')) {
+    if (hasDefaultAlias && fixed.includes("* as")) {
       const originalMatch = importStmt.match(/import\s+(\w+)\s+as\s+(\w+)\s+from/);
       if (originalMatch) {
-        const [_, defaultName, aliasName] = originalMatch;
+        const [defaultName, aliasName] = originalMatch;
         const fixedMatch = fixed.match(/import\s+\*\s+as\s+(\w+)\s+from/);
 
         if (fixedMatch) {
           errors.push(
             `Note: La syntaxe 'import ${defaultName} as ${aliasName}' n'est pas standard en ES6/TypeScript. ` +
-              `Elle a été transformée en 'import * as ${aliasName}', mais gardez à l'esprit que ces deux formes ` +
-              'ont des comportements différents. La forme recommandée pour un import par défaut avec alias serait: ' +
-              `import { default as ${aliasName} } from '...' ou simplement import ${aliasName} from '...'`
+            `Elle a été transformée en 'import * as ${aliasName}', mais gardez à l'esprit que ces deux formes ` +
+            "ont des comportements différents. La forme recommandée pour un import par défaut avec alias serait: " +
+            `import { default as ${aliasName} } from '...' ou simplement import ${aliasName} from '...'`
           );
         }
       }
     }
 
-    if (!fixed.endsWith(';')) {
-      fixed += ';';
+    if (!fixed.endsWith(";")) {
+      fixed += ";";
     }
 
-    const isImportStatement = fixed.startsWith('import');
-    const hasSource = fixed.includes('from') || fixed.match(/import\s+['"]/);
+    const isImportStatement = fixed.startsWith("import");
+    const hasSource = fixed.includes("from") || fixed.match(/import\s+['"]/);
 
     const isValid = Boolean(isImportStatement && hasSource && !hasErrors);
 
@@ -178,7 +178,7 @@ export function fixImportStatement(importStmt: string): FixResult {
   } catch (error) {
     let errorMessage = error instanceof Error ? error.message : String(error);
 
-    if (errorMessage.includes('Cannot read') || errorMessage.includes('undefined')) {
+    if (errorMessage.includes("Cannot read") || errorMessage.includes("undefined")) {
       errorMessage += ". Cela peut être dû à une syntaxe d'import incorrecte. Vérifiez la structure de votre déclaration d'import.";
     }
 
@@ -191,7 +191,7 @@ export function fixImportStatement(importStmt: string): FixResult {
 }
 
 function detectDuplicateSpecifiers(importStmt: string): string[] | null {
-  if (!importStmt.includes('{')) {
+  if (!importStmt.includes("{")) {
     return null;
   }
 
@@ -202,12 +202,12 @@ function detectDuplicateSpecifiers(importStmt: string): string[] | null {
 
   const specifiersContent = match[1];
   const specifiers = specifiersContent
-    .split(',')
+    .split(",")
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => {
-      const withoutType = s.replace(/^type\s+/, '');
-      return withoutType.split(' as ')[0].trim();
+      const withoutType = s.replace(/^type\s+/, "");
+      return withoutType.split(" as ")[0].trim();
     });
 
   const seen = new Set<string>();
@@ -225,16 +225,16 @@ function detectDuplicateSpecifiers(importStmt: string): string[] | null {
 }
 
 function removeTrailingComments(importStmt: string): string {
-  const lines = importStmt.split('\n');
+  const lines = importStmt.split("\n");
 
   const cleanedLines: string[] = [];
 
   for (const line of lines) {
-    if (line.trim().startsWith('//')) {
+    if (line.trim().startsWith("//")) {
       continue;
     }
 
-    const cleanedLine = line.replace(/\/\/.*$/, '').trim();
+    const cleanedLine = line.replace(/\/\/.*$/, "").trim();
 
     if (cleanedLine) {
       cleanedLines.push(cleanedLine);
@@ -242,13 +242,13 @@ function removeTrailingComments(importStmt: string): string {
   }
 
   if (cleanedLines.length === 0) {
-    return '';
+    return "";
   }
 
-  let cleaned = cleanedLines.join('\n');
+  let cleaned = cleanedLines.join("\n");
 
-  if (!cleaned.endsWith(';')) {
-    cleaned += ';';
+  if (!cleaned.endsWith(";")) {
+    cleaned += ";";
   }
 
   return cleaned;
@@ -264,6 +264,6 @@ export function validateAndFixImportWithBabel(importStmt: string): {
   return {
     fixed: result.fixed,
     isValid: result.isValid,
-    error: result.errors.length > 0 ? result.errors.join('; ') : undefined,
+    error: result.errors.length > 0 ? result.errors.join("; ") : undefined,
   };
 }

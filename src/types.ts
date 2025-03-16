@@ -5,7 +5,7 @@ export type ConfigImportGroup = {
   isDefault?: boolean;
 };
 
-export type ImportType = 'default' | 'named' | 'typeDefault' | 'typeNamed' | 'sideEffect';
+export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect";
 export type ImportSource = string;
 export type ImportSpecifier = string;
 
@@ -54,22 +54,22 @@ export interface ParserResult {
 }
 
 export const DEFAULT_CONFIG: Partial<ParserConfig> = {
-  defaultGroupName: 'Misc',
+  defaultGroupName: "Misc",
   typeOrder: {
-    'sideEffect': 0,
-    'default': 1,
-    'named': 2,
-    'typeDefault': 3,
-    'typeNamed': 4
+    sideEffect: 0,
+    default: 1,
+    named: 2,
+    typeDefault: 3,
+    typeNamed: 4,
   },
   TypeOrder: {
-    'default': 0,
-    'named': 1,
-    'typeDefault': 2,
-    'typeNamed': 3,
-    'sideEffect': 4
+    default: 0,
+    named: 1,
+    typeDefault: 2,
+    typeNamed: 3,
+    sideEffect: 4,
   },
   patterns: {
-    appSubfolderPattern: /@app\/([^/]+)/
-  }
+    appSubfolderPattern: /@app\/([^/]+)/,
+  },
 };
