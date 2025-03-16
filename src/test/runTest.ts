@@ -41,7 +41,7 @@ console.log(`Tests d'erreur: ${errorTestSuccess ? "✅ SUCCÈS" : "❌ ÉCHEC"}`
 console.log(`Résultat global: ${standardTestSuccess && errorTestSuccess ? "✅ TOUS LES TESTS ONT RÉUSSI" : "❌ CERTAINS TESTS ONT ÉCHOUÉ"}`);
 
 const timestamp = Date.now();
-const reportPath = path.resolve(__dirname, `../results/test-report-${timestamp}.json`);
+const reportPath = path.resolve(__dirname, `./results/test-report-${timestamp}.json`);
 
 fs.writeFileSync(
   reportPath,

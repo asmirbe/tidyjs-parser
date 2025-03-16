@@ -411,7 +411,7 @@ function testAliasImports() {
 
   // Écrire les résultats dans un fichier
   const timestamp = Date.now();
-  const outputPath = path.resolve(__dirname, `../results/test-special-cases-${timestamp}.json`);
+  const outputPath = path.resolve(__dirname, `./results/test-special-cases-${timestamp}.json`);
   writeFileSync(outputPath, JSON.stringify(results, null, 2));
   console.log(`Résultats des cas spéciaux écrits dans: ${outputPath}`);
 }
@@ -475,7 +475,7 @@ function testDuplicateCorrection() {
   }
 
   // Écrire les résultats dans un fichier
-  const outputPath = path.resolve(__dirname, `../results/test-duplicate-correction-${timestamp}.json`);
+  const outputPath = path.resolve(__dirname, `./results/test-duplicate-correction-${timestamp}.json`);
   writeFileSync(outputPath, JSON.stringify(results, null, 2));
   console.log(`Résultats écrits dans: ${outputPath}`);
 
@@ -612,7 +612,7 @@ function testProblematicImports() {
 
   // Écrire les résultats dans un fichier
   const timestamp = Date.now();
-  const outputPath = path.resolve(__dirname, `../results/test-problematic-imports-${timestamp}.json`);
+  const outputPath = path.resolve(__dirname, `./results/test-problematic-imports-${timestamp}.json`);
   writeFileSync(outputPath, JSON.stringify(results, null, 2));
   console.log(`Résultats des cas problématiques écrits dans: ${outputPath}`);
 
@@ -647,7 +647,7 @@ function testExtraCases() {
 
   // Écrire les résultats dans un fichier
   const timestamp = Date.now();
-  const outputPath = path.resolve(__dirname, `../results/test-extra-cases-${timestamp}.json`);
+  const outputPath = path.resolve(__dirname, `./results/test-extra-cases-${timestamp}.json`);
   writeFileSync(outputPath, JSON.stringify(results, null, 2));
   console.log(`Résultats des cas supplémentaires écrits dans: ${outputPath}`);
 

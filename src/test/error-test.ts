@@ -250,7 +250,7 @@ function runErrorTests() {
 
   // Écrire les résultats détaillés dans un fichier
   const timestamp = Date.now();
-  const outputPath = path.resolve(__dirname, `../results/error-tests-${timestamp}.json`);
+  const outputPath = path.resolve(__dirname, `./results/error-tests-${timestamp}.json`);
   writeFileSync(
     outputPath,
     JSON.stringify(
