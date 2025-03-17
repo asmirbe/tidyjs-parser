@@ -1,19 +1,19 @@
 # TidyImport Parser
 
-Un parser puissant pour analyser, organiser et nettoyer les imports dans les fichiers TypeScript/JavaScript.
+A powerful parser to analyze, organize, and clean imports in TypeScript/JavaScript files.
 
 ## Description
 
-TidyImport Parser est un outil conçu pour analyser et organiser les imports dans les fichiers TypeScript/JavaScript selon des règles configurables. Il permet de regrouper les imports par catégories, de les trier selon un ordre spécifique, et de détecter et corriger certaines erreurs de syntaxe.
+TidyImport Parser is a tool designed to analyze and organize imports in TypeScript/JavaScript files according to configurable rules. It allows grouping imports by categories, sorting them in a specific order, and detecting and correcting certain syntax errors.
 
-## Fonctionnalités
+## Features
 
-- **Analyse des imports** : Détecte et analyse tous les types d'imports (par défaut, nommés, de type, à effets de bord)
-- **Regroupement configurable** : Organise les imports en groupes selon des expressions régulières configurables
-- **Détection de modèles de chemin** : Crée dynamiquement des groupes basés sur des modèles de chemin (ex: `@app/{sousdossier}/*`)
-- **Ordre précis** : Trie les imports selon un ordre spécifique (React d'abord, puis par type d'import)
-- **Validation et correction** : Détecte et corrige certaines erreurs de syntaxe dans les imports
-- **Support TypeScript** : Prend en charge les imports de type TypeScript
+- **Import analysis**: Detects and analyzes all types of imports (default, named, type, side effect)
+- **Configurable grouping**: Organizes imports into groups based on configurable regular expressions
+- **Path pattern detection**: Dynamically creates groups based on path patterns (e.g., `@app/{subfolder}/*`)
+- **Precise ordering**: Sorts imports according to a specific order (React first, then by import type)
+- **Validation and correction**: Detects and corrects certain syntax errors in imports
+- **TypeScript support**: Handles TypeScript type imports
 
 ## Installation
 
@@ -21,21 +21,21 @@ TidyImport Parser est un outil conçu pour analyser et organiser les imports dan
 npm install tidyimport-parser
 ```
 
-## Utilisation
+## Usage
 
-### Configuration de base
+### Basic Configuration
 
 ```typescript
 import { parseImports, ParserConfig } from 'tidyimport-parser';
 
-// Configuration du parser
+// Parser configuration
 const config: ParserConfig = {
   importGroups: [
     { name: 'Misc', regex: /^(react|lodash|uuid)$/, order: 0, isDefault: true },
-    { name: 'Composants', regex: /^@components/, order: 1 },
+    { name: 'Components', regex: /^@components/, order: 1 },
     { name: 'Utils', regex: /^@utils/, order: 2 },
   ],
-  // Configuration optionnelle
+  // Optional configuration
   defaultGroupName: 'Misc',
   typeOrder: {
     'sideEffect': 0,
@@ -49,7 +49,7 @@ const config: ParserConfig = {
   }
 };
 
-// Code source à analyser
+// Source code to analyze
 const sourceCode = `
 import React from 'react';
 import { useState } from 'react';
@@ -57,15 +57,15 @@ import { Button } from '@components/ui';
 import { formatDate } from '@utils/date';
 `;
 
-// Analyse des imports
+// Import analysis
 const result = parseImports(sourceCode, config);
 
 console.log(result);
 ```
 
-### Résultat de l'analyse
+### Analysis Result
 
-Le résultat de l'analyse contient les informations suivantes :
+The analysis result contains the following information:
 
 ```typescript
 {
@@ -95,7 +95,7 @@ Le résultat de l'analyse contient les informations suivantes :
       ]
     },
     {
-      name: 'Composants',
+      name: 'Components',
       order: 1,
       imports: [
         {
@@ -103,7 +103,7 @@ Le résultat de l'analyse contient les informations suivantes :
           source: '@components/ui',
           specifiers: ['Button'],
           raw: 'import { Button } from \'@components/ui\';',
-          groupName: 'Composants',
+          groupName: 'Components',
           isPriority: false,
           appSubfolder: null
         }
@@ -136,9 +136,9 @@ Le résultat de l'analyse contient les informations suivantes :
 }
 ```
 
-### Validation et correction des imports
+### Import Validation and Correction
 
-Le parser peut également valider et corriger certaines erreurs de syntaxe dans les imports :
+The parser can also validate and correct certain syntax errors in imports:
 
 ```typescript
 import { validateAndFixImportWithBabel } from 'tidyimport-parser';
@@ -154,18 +154,18 @@ console.log(result);
 // }
 ```
 
-## Configuration avancée
+## Advanced Configuration
 
-### Groupes d'imports
+### Import Groups
 
-Les groupes d'imports sont définis par un nom, une expression régulière et un ordre :
+Import groups are defined by a name, a regular expression, and an order:
 
 ```typescript
 const config: ParserConfig = {
   importGroups: [
     { name: 'Misc', regex: /^(react|react-.*|lodash|date-fns|classnames|@fortawesome|@reach|uuid|@tanstack|ag-grid-community|framer-motion)$/, order: 0 },
     { name: 'DS', regex: /^ds$/, order: 1 },
-    { name: '@app/dossier', regex: /^@app\/dossier/, order: 2 },
+    { name: '@app/folder', regex: /^@app\/folder/, order: 2 },
     { name: '@app', regex: /^@app/, order: 2 },
     { name: '@core', regex: /^@core/, order: 3 },
     { name: '@library', regex: /^@library/, order: 4 },
@@ -175,27 +175,27 @@ const config: ParserConfig = {
 };
 ```
 
-### Ordre des types d'imports
+### Import Type Order
 
-L'ordre des types d'imports peut être configuré :
+The order of import types can be configured:
 
 ```typescript
 const config: ParserConfig = {
   // ...
   typeOrder: {
-    'sideEffect': 0, // Imports à effets de bord (ex: import 'module';)
-    'default': 1,    // Imports par défaut (ex: import React from 'react';)
-    'named': 2,      // Imports nommés (ex: import { useState } from 'react';)
-    'typeDefault': 3, // Imports de type par défaut (ex: import type Test from 'react';)
-    'typeNamed': 4   // Imports de type nommés (ex: import type { Test } from 'react';)
+    'sideEffect': 0, // Side effect imports (e.g., import 'module';)
+    'default': 1,    // Default imports (e.g., import React from 'react';)
+    'named': 2,      // Named imports (e.g., import { useState } from 'react';)
+    'typeDefault': 3, // Default type imports (e.g., import type Test from 'react';)
+    'typeNamed': 4   // Named type imports (e.g., import type { Test } from 'react';)
   },
   // ...
 };
 ```
 
-### Modèles de chemin
+### Path Patterns
 
-Les modèles de chemin permettent de créer dynamiquement des groupes basés sur des chemins d'imports :
+Path patterns allow dynamically creating groups based on import paths:
 
 ```typescript
 const config: ParserConfig = {
@@ -207,9 +207,9 @@ const config: ParserConfig = {
 };
 ```
 
-## Exemples
+## Examples
 
-### Exemple simple
+### Simple Example
 
 ```typescript
 // Input
@@ -219,7 +219,7 @@ import type Test from 'react';
 import { YpButton } from 'ds';
 import React from 'react';
 
-// Output (après formatage)
+// Output (after formatting)
 // Misc
 import React from 'react';
 import { useState } from 'react';
@@ -229,35 +229,35 @@ import type { Test } from 'react';
 import { YpButton } from 'ds';
 ```
 
-### Exemple avec groupes dynamiques
+### Example with Dynamic Groups
 
 ```typescript
 // Input
-import AbsenceInitFormComponent from '@app/dossier/components/absences/init/AbsenceInitFormComponent';
+import AbsenceInitFormComponent from '@app/folder/components/absences/init/AbsenceInitFormComponent';
 import { useClientNotification } from '@app/notification/ClientNotificationProvider';
-import AccordFormComponent from '@app/dossier/components/britania/init/AbsenceInitFormComponent';
+import AccordFormComponent from '@app/folder/components/britania/init/AbsenceInitFormComponent';
 import useUtilisateurSearch from '@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider';
-import AbsencesFormComponent from '@app/dossier/components/absences/init/AbsencesFormComponent';
+import AbsencesFormComponent from '@app/folder/components/absences/init/AbsencesFormComponent';
 
-// Output (après formatage)
+// Output (after formatting)
 // @app/client
 import useUtilisateurSearch from '@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider';
-// @app/dossier
-import AbsenceInitFormComponent from '@app/dossier/components/absences/init/AbsenceInitFormComponent';
-import AbsencesFormComponent from '@app/dossier/components/absences/init/AbsencesFormComponent';
-import AccordFormComponent from '@app/dossier/components/britania/init/AbsenceInitFormComponent';
+// @app/folder
+import AbsenceInitFormComponent from '@app/folder/components/absences/init/AbsenceInitFormComponent';
+import AbsencesFormComponent from '@app/folder/components/absences/init/AbsencesFormComponent';
+import AccordFormComponent from '@app/folder/components/britania/init/AbsenceInitFormComponent';
 // @app/notification
 import { useClientNotification } from '@app/notification/ClientNotificationProvider';
 ```
 
 ## Tests
 
-Le projet inclut des tests pour vérifier le bon fonctionnement du parser :
+The project includes tests to verify the proper functioning of the parser:
 
 ```bash
 npm run test
 ```
 
-## Licence
+## License
 
 MIT
