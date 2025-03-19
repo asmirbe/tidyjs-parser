@@ -40,7 +40,8 @@ class ImportParser {
     originalImports: string[];
     invalidImports: InvalidImport[];
   } {
-    const importRegex = /^\s*import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/gm;
+    // Utiliser le code source tel quel, sans normalisation
+    const importRegex = /(?:^|\n)\s*import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/g;
 
     const originalImports: string[] = [];
     const invalidImports: InvalidImport[] = [];
@@ -49,13 +50,27 @@ class ImportParser {
     let match: RegExpExecArray | null;
 
     while ((match = importRegex.exec(sourceCode)) !== null) {
-      let lineEnd = sourceCode.indexOf("\n", match.index);
-      if (lineEnd === -1) lineEnd = sourceCode.length;
+      // Extraire l'import en ignorant les sauts de ligne au début
+      let importStmt = match[0].trim();
 
-      let importStmt = sourceCode.substring(match.index, lineEnd).trim();
+      // Si l'import est vide après le trim, c'est probablement juste un saut de ligne
+      if (!importStmt) {
+        continue;
+      }
 
+      // S'assurer que l'import commence par "import"
+      if (!importStmt.startsWith("import")) {
+        const importIndex = match[0].indexOf("import");
+        if (importIndex >= 0) {
+          importStmt = match[0].substring(importIndex).trim();
+        } else {
+          continue; // Pas un import valide
+        }
+      }
+
+      // Gérer les imports multi-lignes
       if (!importStmt.includes(";")) {
-        let searchEnd = lineEnd;
+        let searchEnd = match.index + match[0].length;
         let nextLine = "";
 
         do {

@@ -13,7 +13,9 @@
     "dev": "ts-node src/index.ts",
     "test": "ts-node src/test/runTest.ts",
     "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint:fix": "eslint . --ext .ts --fix",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "typescript",
