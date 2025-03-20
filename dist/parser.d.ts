@@ -3,7 +3,6 @@ declare class ImportParser {
     private readonly config;
     private readonly defaultGroupName;
     private readonly typeOrder;
-    private readonly TypeOrder;
     private readonly patterns;
     private readonly priorityImportPatterns;
     private appSubfolders;

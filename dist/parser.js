@@ -9,7 +9,6 @@ class ImportParser {
         this.config = {
             ...config,
             typeOrder: { ...types_1.DEFAULT_CONFIG.typeOrder, ...(config.typeOrder ?? {}) },
-            TypeOrder: { ...types_1.DEFAULT_CONFIG.TypeOrder, ...(config.TypeOrder ?? {}) },
             patterns: { ...types_1.DEFAULT_CONFIG.patterns, ...config.patterns },
         };
         this.appSubfolders = new Set();
@@ -21,7 +20,6 @@ class ImportParser {
             this.defaultGroupName = defaultGroup ? defaultGroup.name : "Misc";
         }
         this.typeOrder = this.config.typeOrder;
-        this.TypeOrder = this.config.TypeOrder;
         this.patterns = this.config.patterns;
         this.priorityImportPatterns = this.config.priorityImports ?? [];
     }
@@ -453,11 +451,6 @@ class ImportParser {
                 return -1;
             if (!a.isPriority && b.isPriority)
                 return 1;
-            if (a.isPriority && b.isPriority) {
-                if (a.type !== b.type) {
-                    return this.TypeOrder[a.type] - this.TypeOrder[b.type];
-                }
-            }
             if (a.type !== b.type) {
                 return this.typeOrder[a.type] - this.typeOrder[b.type];
             }

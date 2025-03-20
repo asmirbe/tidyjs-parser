@@ -14,8 +14,7 @@
     "test": "ts-node src/test/runTest.ts",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "build": "tsc"
   },
   "keywords": [
     "typescript",

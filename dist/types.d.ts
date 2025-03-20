@@ -17,7 +17,6 @@ export type ParserConfig = {
     importGroups: ConfigImportGroup[];
     defaultGroupName?: string;
     typeOrder?: TypeOrder;
-    TypeOrder?: TypeOrder;
     patterns?: SourcePatterns;
     priorityImports?: RegExp[];
 };

@@ -10,13 +10,6 @@ exports.DEFAULT_CONFIG = {
         typeDefault: 3,
         typeNamed: 4,
     },
-    TypeOrder: {
-        default: 0,
-        named: 1,
-        typeDefault: 2,
-        typeNamed: 3,
-        sideEffect: 4,
-    },
     patterns: {
         appSubfolderPattern: /@app\/([^/]+)/,
     },
