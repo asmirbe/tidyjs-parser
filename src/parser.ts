@@ -6,7 +6,6 @@ class ImportParser {
   private readonly config: ParserConfig;
   private readonly defaultGroupName: string;
   private readonly typeOrder: TypeOrder;
-  private readonly TypeOrder: TypeOrder;
   private readonly patterns: SourcePatterns;
   private readonly priorityImportPatterns: RegExp[];
 
@@ -16,7 +15,6 @@ class ImportParser {
     this.config = {
       ...config,
       typeOrder: { ...(DEFAULT_CONFIG.typeOrder as TypeOrder), ...(config.typeOrder ?? {}) } as TypeOrder,
-      TypeOrder: { ...(DEFAULT_CONFIG.TypeOrder as TypeOrder), ...(config.TypeOrder ?? {}) } as TypeOrder,
       patterns: { ...DEFAULT_CONFIG.patterns, ...config.patterns },
     };
 
@@ -30,7 +28,6 @@ class ImportParser {
     }
 
     this.typeOrder = this.config.typeOrder as TypeOrder;
-    this.TypeOrder = this.config.TypeOrder as TypeOrder;
     this.patterns = this.config.patterns as SourcePatterns;
     this.priorityImportPatterns = this.config.priorityImports ?? [];
   }
@@ -553,12 +550,6 @@ class ImportParser {
     return imports.sort((a, b) => {
       if (a.isPriority && !b.isPriority) return -1;
       if (!a.isPriority && b.isPriority) return 1;
-
-      if (a.isPriority && b.isPriority) {
-        if (a.type !== b.type) {
-          return this.TypeOrder[a.type] - this.TypeOrder[b.type];
-        }
-      }
 
       if (a.type !== b.type) {
         return this.typeOrder[a.type] - this.typeOrder[b.type];

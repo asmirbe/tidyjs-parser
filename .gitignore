@@ -16,6 +16,6 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.sw?
-
+memory-bank/
 # OS specific
 .DS_Store
