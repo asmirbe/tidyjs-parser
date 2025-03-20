@@ -5,6 +5,17 @@
       "order": 0,
       "imports": [
         {
+          "type": "default",
+          "source": "react",
+          "specifiers": [
+            "React"
+          ],
+          "raw": "import React from 'react';",
+          "groupName": "Misc",
+          "isPriority": true,
+          "appSubfolder": null
+        },
+        {
           "type": "named",
           "source": "react",
           "specifiers": [
@@ -670,22 +681,23 @@
     }
   ],
   "originalImports": [
-    "import React as R from 'react';",
+    "import React from 'react';",
+    "import React as R from '\neact';",
     "import type Danger from 'danger';",
     "import { Fragment, useCallback, type ChangeEvent } from 'react';",
     "import type { ChangeEvent, FC } from 'react';",
-    "import {\nFragment,\nuseCallback,\nuseEffect,\ntype ChangeEvent,\nuseMemo,\nuseRef,\nuseState\n}                          from 'react';",
-    "import type {\nChangeEvent,\nFC\n}                          from 'react';",
+    "import {\n    Fragment,\n    useCallback,\n    useEffect,\n    type ChangeEvent,\n    useMemo,\n    useRef,\n    useState\n}                          from 'react';",
+    "import type {\n    ChangeEvent,\n    FC\n}                          from 'react';",
     "import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';",
     "import { navigate }        from '@reach/router';",
-    "import {\ncreateColumnHelper,\ngetCoreRowModel,\ngetFilteredRowModel,\nuseReactTable\n}                          from '@tanstack/react-table';",
-    "import type {\nCell,\nColumnDef\n}                          from '@tanstack/react-table';",
+    "import {\n    createColumnHelper,\n    getCoreRowModel,\n    getFilteredRowModel,\n    useReactTable\n}                          from '@tanstack/react-table';",
+    "import type {\n    Cell,\n    ColumnDef\n}                          from '@tanstack/react-table';",
     "import cn                  from 'classnames';",
-    "import {\naddWeeks,\ndifferenceInDays,\neachDayOfInterval,\neachWeekOfInterval,\nendOfDay,\nformat,\ngetWeek,\nisBefore,\nisSameDay,\nisWeekend,\nisWithinInterval,\nlastDayOfMonth,\nlastDayOfWeek,\nparseISO,\nstartOfDay,\nstartOfMonth,\nsubWeeks\n}                          from 'date-fns';",
+    "import {\n    addWeeks,\n    differenceInDays,\n    eachDayOfInterval,\n    eachWeekOfInterval,\n    endOfDay,\n    format,\n    getWeek,\n    isBefore,\n    isSameDay,\n    isWeekend,\n    isWithinInterval,\n    lastDayOfMonth,\n    lastDayOfWeek,\n    parseISO,\n    startOfDay,\n    startOfMonth,\n    subWeeks\n}                          from 'date-fns';",
     "import { fr }              from 'date-fns/locale';",
-    "import {\nfilter,\nfind,\nfirst,\nisEmpty,\nlast,\nmap,\norderBy\n}                          from 'lodash';",
+    "import {\n    filter,\n    find,\n    first,\n    isEmpty,\n    last,\n    map,\n    orderBy\n}                          from 'lodash';",
     "import { v4 as uuidv4 }    from 'uuid';",
-    "import {\nuseYpModal,\nuseYpStepper,\nuseYpWrapperContext,\nYpAlert,\nYpButton,\nYpConfirmModal,\nYpDataTableTimeline,\nYpElement,\nYpFormModal,\nYpInput,\nYpPopover,\nYpSelect,\nYpSkeleton,\nYpStepperNew,\nYpTag,\nYpTooltip,\nYpTypography\n}                        from 'ds';",
+    "import {\n    useYpModal,\n    useYpStepper,\n    useYpWrapperContext,\n    YpAlert,\n    YpButton,\n    YpConfirmModal,\n    YpDataTableTimeline,\n    YpElement,\n    YpFormModal,\n    YpInput,\n    YpPopover,\n    YpSelect,\n    YpSkeleton,\n    YpStepperNew,\n    YpTag,\n    YpTooltip,\n    YpTypography\n}                        from 'ds';",
     "import useUtilisateurSearch  from '@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider';",
     "import AbsenceRapportComponent                        from '@app/dossier/components/absences/AbsenceRapportComponent';",
     "import AbsenceDsnComponent                            from '@app/dossier/components/absences/dsn/AbsenceDsnComponent';",
@@ -719,14 +731,14 @@
     "import useFichesHistorisationList                     from '@app/dossier/providers/fiches/FichesHistorisationListProvider';",
     "import { moduleRoute as DossierModule }               from '@app/dossier/resources/common/Router';",
     "import { useClientNotification } from '@app/notification/ClientNotificationProvider';",
-    "import type {\nTDataProviderReturn,\nWsDataModel\n}                         from '@core/models/ProviderModel';",
+    "import type {\n    TDataProviderReturn,\n    WsDataModel\n}                         from '@core/models/ProviderModel';",
     "import { useUserContext } from '@core/providers/contexts/UserContextProvider';",
     "import { getLocationId }  from '@core/utils/misc';",
     "import { getDateFormat }      from '@library/utils/dates';",
     "import { useSearch }          from '@library/utils/search';",
     "import { getPageStyleHeight } from '@library/utils/styles';",
     "import { getPalette } from 'yutils/colors';",
-    "import {\nconjugate,\ngetTextPreview\n}                     from 'yutils/text';"
+    "import {\n    conjugate,\n    getTextPreview\n}                     from 'yutils/text';"
   ],
   "appSubfolders": [
     "client",
@@ -735,7 +747,7 @@
   ],
   "invalidImports": [
     {
-      "raw": "import React as R from 'react';",
+      "raw": "import React as R from '\neact';",
       "error": "Unexpected token, expected \"from\" (1:19) - Lors de l'utilisation d'un alias avec 'as', il faut l'inclure à l'intérieur des accolades pour les imports nommés ou l'utiliser avec un import par défaut. Exemple correct: import { Component as C } from 'module'; ou import Default as D from 'module';"
     }
   ]

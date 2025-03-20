@@ -36,23 +36,23 @@
     }
   ],
   "originalImports": [
-    "import React as R from 'react';",
-    "import { useState } from 'react'; // Commentaire qui sera supprimé",
-    "import {\nComponent,\nFragment,\nuseState // Commentaire en fin de ligne à l'intérieur d'accolades\n} from 'react';",
+    "import React as R from '\neact';",
+    "import { useState } from 'react';",
+    "import {\n  Component,\n  Fragment,\n  useState // Commentaire en fin de ligne à l'intérieur d'accolades\n} from 'react';",
     "import { useCallback, type ChangeEvent, useEffect } from 'react';",
     "import { Component as C } from 'react';",
-    "import React as R2 from 'react';",
+    "import React as R2 from '\neact';",
     "import type { FC } from 'react';",
     "import { useState, useEffect, useState } from 'react';"
   ],
   "appSubfolders": [],
   "invalidImports": [
     {
-      "raw": "import React as R from 'react';",
+      "raw": "import React as R from '\neact';",
       "error": "Unexpected token, expected \"from\" (1:19) - Lors de l'utilisation d'un alias avec 'as', il faut l'inclure à l'intérieur des accolades pour les imports nommés ou l'utiliser avec un import par défaut. Exemple correct: import { Component as C } from 'module'; ou import Default as D from 'module';"
     },
     {
-      "raw": "import React as R2 from 'react';",
+      "raw": "import React as R2 from '\neact';",
       "error": "Unexpected token, expected \"from\" (1:19) - Lors de l'utilisation d'un alias avec 'as', il faut l'inclure à l'intérieur des accolades pour les imports nommés ou l'utiliser avec un import par défaut. Exemple correct: import { Component as C } from 'module'; ou import Default as D from 'module';"
     },
     {
