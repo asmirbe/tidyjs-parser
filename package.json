@@ -1,7 +1,7 @@
 {
-  "name": "tidyimport-parser",
+  "name": "tidyjs-parser",
   "version": "0.1.1",
-  "description": "A parser for tidying imports",
+  "description": "A parser for imports",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

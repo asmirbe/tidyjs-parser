@@ -1,10 +1,10 @@
-# TidyImport Parser
+# TidyJS Parser
 
 A powerful parser to analyze, organize, and clean imports in TypeScript/JavaScript files.
 
 ## Description
 
-TidyImport Parser is a tool designed to analyze and organize imports in TypeScript/JavaScript files according to configurable rules. It allows grouping imports by categories, sorting them in a specific order, and detecting and correcting certain syntax errors.
+TidyJS Parser is a tool designed to analyze and organize imports in TypeScript/JavaScript files according to configurable rules. It allows grouping imports by categories, sorting them in a specific order, and detecting and correcting certain syntax errors.
 
 ## Features
 
@@ -18,7 +18,7 @@ TidyImport Parser is a tool designed to analyze and organize imports in TypeScri
 ## Installation
 
 ```bash
-npm install tidyimport-parser
+npm install tidyjs-parser
 ```
 
 ## Usage
@@ -26,27 +26,27 @@ npm install tidyimport-parser
 ### Basic Configuration
 
 ```typescript
-import { parseImports, ParserConfig } from 'tidyimport-parser';
+import { parseImports, ParserConfig } from "tidyjs-parser";
 
 // Parser configuration
 const config: ParserConfig = {
   importGroups: [
-    { name: 'Misc', regex: /^(react|lodash|uuid)$/, order: 0, isDefault: true },
-    { name: 'Components', regex: /^@components/, order: 1 },
-    { name: 'Utils', regex: /^@utils/, order: 2 },
+    { name: "Misc", regex: /^(react|lodash|uuid)$/, order: 0, isDefault: true },
+    { name: "Components", regex: /^@components/, order: 1 },
+    { name: "Utils", regex: /^@utils/, order: 2 },
   ],
   // Optional configuration
-  defaultGroupName: 'Misc',
+  defaultGroupName: "Misc",
   typeOrder: {
-    'sideEffect': 0,
-    'default': 1,
-    'named': 2,
-    'typeDefault': 3,
-    'typeNamed': 4
+    sideEffect: 0,
+    default: 1,
+    named: 2,
+    typeDefault: 3,
+    typeNamed: 4,
   },
   patterns: {
-    appSubfolderPattern: /@app\/([^/]+)/
-  }
+    appSubfolderPattern: /@app\/([^/]+)/,
+  },
 };
 
 // Source code to analyze
@@ -141,7 +141,7 @@ The analysis result contains the following information:
 The parser can also validate and correct certain syntax errors in imports:
 
 ```typescript
-import { validateAndFixImportWithBabel } from 'tidyimport-parser';
+import { validateAndFixImportWithBabel } from "tidyjs-parser";
 
 const importStmt = "import { Component as C } from 'react';";
 const result = validateAndFixImportWithBabel(importStmt);
@@ -163,13 +163,13 @@ Import groups are defined by a name, a regular expression, and an order:
 ```typescript
 const config: ParserConfig = {
   importGroups: [
-    { name: 'Misc', regex: /^(react|react-.*|lodash|date-fns|classnames|@fortawesome|@reach|uuid|@tanstack|ag-grid-community|framer-motion)$/, order: 0 },
-    { name: 'DS', regex: /^ds$/, order: 1 },
-    { name: '@app/folder', regex: /^@app\/folder/, order: 2 },
-    { name: '@app', regex: /^@app/, order: 2 },
-    { name: '@core', regex: /^@core/, order: 3 },
-    { name: '@library', regex: /^@library/, order: 4 },
-    { name: 'Utils', regex: /^yutils/, order: 5 },
+    { name: "Misc", regex: /^(react|react-.*|lodash|date-fns|classnames|@fortawesome|@reach|uuid|@tanstack|ag-grid-community|framer-motion)$/, order: 0 },
+    { name: "DS", regex: /^ds$/, order: 1 },
+    { name: "@app/folder", regex: /^@app\/folder/, order: 2 },
+    { name: "@app", regex: /^@app/, order: 2 },
+    { name: "@core", regex: /^@core/, order: 3 },
+    { name: "@library", regex: /^@library/, order: 4 },
+    { name: "Utils", regex: /^yutils/, order: 5 },
   ],
   // ...
 };
@@ -183,11 +183,11 @@ The order of import types can be configured:
 const config: ParserConfig = {
   // ...
   typeOrder: {
-    'sideEffect': 0, // Side effect imports (e.g., import 'module';)
-    'default': 1,    // Default imports (e.g., import React from 'react';)
-    'named': 2,      // Named imports (e.g., import { useState } from 'react';)
-    'typeDefault': 3, // Default type imports (e.g., import type Test from 'react';)
-    'typeNamed': 4   // Named type imports (e.g., import type { Test } from 'react';)
+    sideEffect: 0, // Side effect imports (e.g., import 'module';)
+    default: 1, // Default imports (e.g., import React from 'react';)
+    named: 2, // Named imports (e.g., import { useState } from 'react';)
+    typeDefault: 3, // Default type imports (e.g., import type Test from 'react';)
+    typeNamed: 4, // Named type imports (e.g., import type { Test } from 'react';)
   },
   // ...
 };
@@ -201,7 +201,7 @@ Path patterns allow dynamically creating groups based on import paths:
 const config: ParserConfig = {
   // ...
   patterns: {
-    appSubfolderPattern: /@app\/([^/]+)/
+    appSubfolderPattern: /@app\/([^/]+)/,
   },
   // ...
 };
@@ -213,41 +213,41 @@ const config: ParserConfig = {
 
 ```typescript
 // Input
-import type { Test } from 'react';
-import { useState } from 'react';
-import type Test from 'react';
-import { YpButton } from 'ds';
-import React from 'react';
+import type { Test } from "react";
+import { useState } from "react";
+import type Test from "react";
+import { YpButton } from "ds";
+import React from "react";
 
 // Output (after formatting)
 // Misc
-import React from 'react';
-import { useState } from 'react';
-import type Test from 'react';
-import type { Test } from 'react';
+import React from "react";
+import { useState } from "react";
+import type Test from "react";
+import type { Test } from "react";
 // DS
-import { YpButton } from 'ds';
+import { YpButton } from "ds";
 ```
 
 ### Example with Dynamic Groups
 
 ```typescript
 // Input
-import AbsenceInitFormComponent from '@app/folder/components/absences/init/AbsenceInitFormComponent';
-import { useClientNotification } from '@app/notification/ClientNotificationProvider';
-import AccordFormComponent from '@app/folder/components/britania/init/AbsenceInitFormComponent';
-import useUtilisateurSearch from '@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider';
-import AbsencesFormComponent from '@app/folder/components/absences/init/AbsencesFormComponent';
+import AbsenceInitFormComponent from "@app/folder/components/absences/init/AbsenceInitFormComponent";
+import { useClientNotification } from "@app/notification/ClientNotificationProvider";
+import AccordFormComponent from "@app/folder/components/britania/init/AbsenceInitFormComponent";
+import useUtilisateurSearch from "@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider";
+import AbsencesFormComponent from "@app/folder/components/absences/init/AbsencesFormComponent";
 
 // Output (after formatting)
 // @app/client
-import useUtilisateurSearch from '@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider';
+import useUtilisateurSearch from "@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider";
 // @app/folder
-import AbsenceInitFormComponent from '@app/folder/components/absences/init/AbsenceInitFormComponent';
-import AbsencesFormComponent from '@app/folder/components/absences/init/AbsencesFormComponent';
-import AccordFormComponent from '@app/folder/components/britania/init/AbsenceInitFormComponent';
+import AbsenceInitFormComponent from "@app/folder/components/absences/init/AbsenceInitFormComponent";
+import AbsencesFormComponent from "@app/folder/components/absences/init/AbsencesFormComponent";
+import AccordFormComponent from "@app/folder/components/britania/init/AbsenceInitFormComponent";
 // @app/notification
-import { useClientNotification } from '@app/notification/ClientNotificationProvider';
+import { useClientNotification } from "@app/notification/ClientNotificationProvider";
 ```
 
 ## Tests
