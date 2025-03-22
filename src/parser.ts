@@ -33,12 +33,27 @@ class ImportParser {
 
     // Convert import groups' regex strings to RegExp objects with case-insensitive flag
     const importGroups = config.importGroups.map(group => {
+      const processRegex = (regex: string | RegExp | undefined) => {
+        if (!regex) return undefined;
+        if (typeof regex === 'string') {
+          try {
+            // First try to compile the regex as-is (for object literal configs)
+            return new RegExp(regex, 'i');
+          } catch {
+            // If that fails, try unescaping backslashes (for JSON configs)
+            const unescapedRegex = regex.replace(/\\([\\])/g, '$1');
+            return new RegExp(unescapedRegex, 'i');
+          }
+        }
+        return regex;
+      };
+
       if (group.isDefault) {
         // Default group - regex is optional
         return {
           ...group,
           isDefault: true,
-          regex: group.regex ? (typeof group.regex === 'string' ? new RegExp(group.regex, 'i') : group.regex) : undefined
+          regex: processRegex(group.regex)
         };
       } else {
         // Non-default group - regex is required
@@ -48,7 +63,7 @@ class ImportParser {
         return {
           ...group,
           isDefault: false,
-          regex: typeof group.regex === 'string' ? new RegExp(group.regex, 'i') : group.regex
+          regex: processRegex(group.regex)
         };
       }
     }) as ConfigImportGroup[];
