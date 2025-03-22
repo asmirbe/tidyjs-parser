@@ -1,6 +1,7 @@
 import { validateAndFixImportWithBabel } from "./fixer";
 import { ImportParserError } from "./errors";
 import { ParserConfig, ParsedImport, ImportGroup, TypeOrder, SourcePatterns, InvalidImport, DEFAULT_CONFIG } from "./types";
+import { validateConfig } from "./configValidator";
 
 class ImportParser {
   private readonly config: ParserConfig;
@@ -12,6 +13,24 @@ class ImportParser {
   private appSubfolders: Set<string>;
 
   constructor(config: ParserConfig) {
+    const validation = validateConfig(config);
+    if (!validation.isValid) {
+      throw new ImportParserError(
+        `Configuration invalide:\n${validation.errors.map(
+          err => `  - [${err.field}] ${err.message}${err.suggestion ? `\n    Suggestion: ${err.suggestion}` : ''}`
+        ).join('\n')}`,
+        JSON.stringify(config, null, 2)
+      );
+    }
+
+    if (validation.warnings.length > 0) {
+      console.warn(
+        `Avertissements de configuration:\n${validation.warnings.map(
+          warn => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ''}`
+        ).join('\n')}`
+      );
+    }
+
     this.config = {
       ...config,
       typeOrder: { ...(DEFAULT_CONFIG.typeOrder as TypeOrder), ...(config.typeOrder ?? {}) } as TypeOrder,

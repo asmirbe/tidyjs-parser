@@ -4,8 +4,16 @@ exports.ImportParser = void 0;
 const fixer_1 = require("./fixer");
 const errors_1 = require("./errors");
 const types_1 = require("./types");
+const configValidator_1 = require("./configValidator");
 class ImportParser {
     constructor(config) {
+        const validation = (0, configValidator_1.validateConfig)(config);
+        if (!validation.isValid) {
+            throw new errors_1.ImportParserError(`Configuration invalide:\n${validation.errors.map(err => `  - [${err.field}] ${err.message}${err.suggestion ? `\n    Suggestion: ${err.suggestion}` : ''}`).join('\n')}`, JSON.stringify(config, null, 2));
+        }
+        if (validation.warnings.length > 0) {
+            console.warn(`Avertissements de configuration:\n${validation.warnings.map(warn => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ''}`).join('\n')}`);
+        }
         this.config = {
             ...config,
             typeOrder: { ...types_1.DEFAULT_CONFIG.typeOrder, ...(config.typeOrder ?? {}) },
