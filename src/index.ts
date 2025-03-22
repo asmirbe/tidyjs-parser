@@ -1,7 +1,8 @@
 import { validateAndFixImportWithBabel } from "./fixer";
 import { ImportParser } from "./parser";
 import { ImportParserError } from "./errors";
-import type { ParserConfig, ParserResult, DEFAULT_CONFIG } from "./types";
+import { DEFAULT_CONFIG } from "./types";
+import type { ParserConfig, ParserResult } from "./types";
 function parseImports(sourceCode: string, config: ParserConfig): ParserResult {
   const parser = new ImportParser(config);
   const { groups, originalImports, invalidImports } = parser.parse(sourceCode);
