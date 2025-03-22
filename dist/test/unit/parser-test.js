@@ -7,6 +7,11 @@ const parser_1 = require("../../parser");
         const config = {
             importGroups: [
                 {
+                    name: "Others",
+                    order: 0,
+                    isDefault: true
+                },
+                {
                     name: "React",
                     regex: /^react/,
                     order: 1,
@@ -24,24 +29,72 @@ const parser_1 = require("../../parser");
         const result = parser.parse(`
             import React from 'react';
             import { useState } from 'react';
+            import Data from '@user/data';
             import { Route } from 'react-router-dom';
         `);
-        // Tous les imports devraient être dans le groupe "React" car il a la priorité la plus élevée
-        (0, globals_1.expect)(result.groups).toHaveLength(1);
-        (0, globals_1.expect)(result.groups[0].name).toBe("React");
-        (0, globals_1.expect)(result.groups[0].imports).toHaveLength(3);
+        (0, globals_1.expect)(result.groups).toHaveLength(2);
+        const reactGroup = result.groups.find(g => g.name === "React");
+        const othersGroup = result.groups.find(g => g.name === "Others");
+        (0, globals_1.expect)(reactGroup).toBeDefined();
+        (0, globals_1.expect)(reactGroup.imports.map(i => i.source)).toEqual(['react', 'react', 'react-router-dom']);
+        (0, globals_1.expect)(othersGroup).toBeDefined();
+        (0, globals_1.expect)(othersGroup.imports.map(i => i.source)).toEqual(['@user/data']);
     });
-    (0, globals_1.it)("devrait utiliser l'ordre de définition quand les priorités ne sont pas définies", () => {
+    (0, globals_1.it)("devrait utiliser la spécificité des regex quand les priorités sont égales", () => {
         const config = {
             importGroups: [
                 {
+                    name: "Others",
+                    order: 0,
+                    isDefault: true
+                },
+                {
+                    name: "React Router",
+                    regex: /^react-router/,
+                    order: 1,
+                    priority: 2
+                },
+                {
                     name: "React",
                     regex: /^react/,
+                    order: 1,
+                    priority: 2
+                }
+            ]
+        };
+        const parser = new parser_1.ImportParser(config);
+        const result = parser.parse(`
+            import React from 'react';
+            import { Route } from 'react-router-dom';
+            import Data from '@user/data';
+        `);
+        (0, globals_1.expect)(result.groups).toHaveLength(3);
+        const routerGroup = result.groups.find(g => g.name === "React Router");
+        const reactGroup = result.groups.find(g => g.name === "React");
+        const othersGroup = result.groups.find(g => g.name === "Others");
+        (0, globals_1.expect)(routerGroup).toBeDefined();
+        (0, globals_1.expect)(routerGroup.imports.map(i => i.source)).toEqual(['react-router-dom']);
+        (0, globals_1.expect)(reactGroup).toBeDefined();
+        (0, globals_1.expect)(reactGroup.imports.map(i => i.source)).toEqual(['react']);
+        (0, globals_1.expect)(othersGroup).toBeDefined();
+        (0, globals_1.expect)(othersGroup.imports.map(i => i.source)).toEqual(['@user/data']);
+    });
+    (0, globals_1.it)("devrait utiliser l'ordre quand les priorités ne sont pas définies", () => {
+        const config = {
+            importGroups: [
+                {
+                    name: "Others",
+                    order: 0,
+                    isDefault: true
+                },
+                {
+                    name: "First",
+                    regex: /^react|^@react/,
                     order: 1
                 },
                 {
-                    name: "Modules",
-                    regex: /^react|^@react/,
+                    name: "Second",
+                    regex: /^react-router/,
                     order: 2
                 }
             ]
@@ -50,45 +103,47 @@ const parser_1 = require("../../parser");
         const result = parser.parse(`
             import React from 'react';
             import { useState } from 'react';
+            import Data from '@user/data';
             import { Route } from 'react-router-dom';
         `);
-        // Les imports devraient être dans le groupe "React" car il est défini en premier
-        (0, globals_1.expect)(result.groups).toHaveLength(1);
-        (0, globals_1.expect)(result.groups[0].name).toBe("React");
-        (0, globals_1.expect)(result.groups[0].imports).toHaveLength(3);
+        (0, globals_1.expect)(result.groups).toHaveLength(3);
+        const firstGroup = result.groups.find(g => g.name === "First");
+        const secondGroup = result.groups.find(g => g.name === "Second");
+        const othersGroup = result.groups.find(g => g.name === "Others");
+        (0, globals_1.expect)(firstGroup).toBeDefined();
+        (0, globals_1.expect)(firstGroup.imports.map(i => i.source)).toEqual(['react', 'react']);
+        (0, globals_1.expect)(secondGroup).toBeDefined();
+        (0, globals_1.expect)(secondGroup.imports.map(i => i.source)).toEqual(['react-router-dom']);
+        (0, globals_1.expect)(othersGroup).toBeDefined();
+        (0, globals_1.expect)(othersGroup.imports.map(i => i.source)).toEqual(['@user/data']);
     });
-    (0, globals_1.it)("devrait respecter la priorité même avec des ordres différents", () => {
+    (0, globals_1.it)("devrait gérer correctement un groupe par défaut sans regex", () => {
         const config = {
             importGroups: [
                 {
-                    name: "LowPriority",
-                    regex: /^react/,
-                    order: 1,
-                    priority: 1
+                    name: "Default",
+                    order: 0,
+                    isDefault: true
                 },
                 {
-                    name: "HighPriority",
-                    regex: /^react|^@react/,
-                    order: 2,
-                    priority: 3
-                },
-                {
-                    name: "MediumPriority",
+                    name: "React",
                     regex: /^react/,
-                    order: 3,
-                    priority: 2
+                    order: 1
                 }
             ]
         };
         const parser = new parser_1.ImportParser(config);
         const result = parser.parse(`
             import React from 'react';
-            import { useState } from 'react';
-            import { Route } from 'react-router-dom';
+            import Data from '@user/data';
+            import Something from 'somewhere';
         `);
-        // Les imports devraient être dans "HighPriority" malgré son ordre plus élevé
-        (0, globals_1.expect)(result.groups).toHaveLength(1);
-        (0, globals_1.expect)(result.groups[0].name).toBe("HighPriority");
-        (0, globals_1.expect)(result.groups[0].imports).toHaveLength(3);
+        (0, globals_1.expect)(result.groups).toHaveLength(2);
+        const reactGroup = result.groups.find(g => g.name === "React");
+        const defaultGroup = result.groups.find(g => g.name === "Default");
+        (0, globals_1.expect)(reactGroup).toBeDefined();
+        (0, globals_1.expect)(reactGroup.imports.map(i => i.source)).toEqual(['react']);
+        (0, globals_1.expect)(defaultGroup).toBeDefined();
+        (0, globals_1.expect)(defaultGroup.imports.map(i => i.source)).toEqual(['@user/data', 'somewhere']);
     });
 });
