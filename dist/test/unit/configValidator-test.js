@@ -10,7 +10,7 @@ function createInvalidRegExp() {
     return invalidRegExp;
 }
 (0, globals_1.describe)("Config Validator", () => {
-    (0, globals_1.test)("devrait valider une configuration correcte", () => {
+    (0, globals_1.test)("should validate a correct configuration", () => {
         const config = {
             importGroups: [
                 { name: "React", regex: /^react$/, order: 0 },
@@ -22,25 +22,25 @@ function createInvalidRegExp() {
         (0, globals_1.expect)(result.isValid).toBe(true);
         (0, globals_1.expect)(result.errors).toHaveLength(0);
     });
-    (0, globals_1.test)("devrait détecter une configuration sans groupes", () => {
+    (0, globals_1.test)("should detect a configuration without groups", () => {
         const config = {
             importGroups: [],
         };
         const result = (0, configValidator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
-        (0, globals_1.expect)(result.errors[0].message).toContain("Au moins un groupe d'import doit être défini");
+        (0, globals_1.expect)(result.errors[0].message).toContain("At least one import group must be defined");
     });
-    (0, globals_1.test)("devrait détecter une expression régulière invalide", () => {
+    (0, globals_1.test)("should detect an invalid regular expression", () => {
         const config = {
             importGroups: [
-                { name: "Invalid", regex: createInvalidRegExp(), order: 0 }, // RegExp invalide
+                { name: "Invalid", regex: createInvalidRegExp(), order: 0 }, // Invalid RegExp
             ],
         };
         const result = (0, configValidator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].type).toBe("regex");
     });
-    (0, globals_1.test)("devrait détecter une expression régulière trop permissive", () => {
+    (0, globals_1.test)("should detect a too permissive regular expression", () => {
         const config = {
             importGroups: [
                 { name: "TooPermissive", regex: /.*/, order: 0 },
@@ -48,9 +48,9 @@ function createInvalidRegExp() {
         };
         const result = (0, configValidator_1.validateConfig)(config);
         (0, globals_1.expect)(result.warnings).toHaveLength(1);
-        (0, globals_1.expect)(result.warnings[0].message).toContain("trop permissive");
+        (0, globals_1.expect)(result.warnings[0].message.toLowerCase()).toContain("too permissive");
     });
-    (0, globals_1.test)("devrait valider les ordres des groupes", () => {
+    (0, globals_1.test)("should validate the order of groups", () => {
         const config = {
             importGroups: [
                 { name: "First", regex: /^first$/, order: 0 },
@@ -59,9 +59,9 @@ function createInvalidRegExp() {
         };
         const result = (0, configValidator_1.validateConfig)(config);
         (0, globals_1.expect)(result.warnings).toHaveLength(1);
-        (0, globals_1.expect)(result.warnings[0].message).toContain("Ordre en doublon détecté");
+        (0, globals_1.expect)(result.warnings[0].message).toContain("Duplicate order detected");
     });
-    (0, globals_1.test)("devrait valider le typeOrder", () => {
+    (0, globals_1.test)("should validate typeOrder", () => {
         const config = {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
             typeOrder: {
@@ -76,11 +76,11 @@ function createInvalidRegExp() {
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].field).toContain("typeOrder");
     });
-    (0, globals_1.test)("devrait valider les patterns", () => {
+    (0, globals_1.test)("should validate patterns", () => {
         const config = {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
             patterns: {
-                appSubfolderPattern: createInvalidRegExp(), // RegExp invalide
+                appSubfolderPattern: createInvalidRegExp(), // Invalid RegExp
             },
         };
         const result = (0, configValidator_1.validateConfig)(config);
@@ -88,16 +88,16 @@ function createInvalidRegExp() {
         (0, globals_1.expect)(result.errors[0].type).toBe("regex");
         (0, globals_1.expect)(result.errors[0].field).toBe("appSubfolderPattern");
     });
-    (0, globals_1.test)("devrait valider les imports prioritaires", () => {
+    (0, globals_1.test)("should validate priority imports", () => {
         const config = {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
-            priorityImports: [/^not-a-regex$/, createInvalidRegExp(), /.*/], // Le deuxième pattern est invalide
+            priorityImports: [/^not-a-regex$/, createInvalidRegExp(), /.*/], // The second pattern is invalid
         };
         const result = (0, configValidator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].field).toContain("priorityImports");
     });
-    (0, globals_1.test)("devrait valider un groupe par défaut", () => {
+    (0, globals_1.test)("should validate a default group", () => {
         const config = {
             importGroups: [
                 { name: "Default", isDefault: true, order: 0 },
@@ -108,15 +108,15 @@ function createInvalidRegExp() {
         (0, globals_1.expect)(result.isValid).toBe(true);
         (0, globals_1.expect)(result.errors).toHaveLength(0);
     });
-    (0, globals_1.test)("devrait détecter un nom de groupe vide", () => {
+    (0, globals_1.test)("should detect an empty group name", () => {
         const config = {
             importGroups: [{ name: "", regex: /^test$/, order: 0 }],
         };
         const result = (0, configValidator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
-        (0, globals_1.expect)(result.errors[0].message).toContain("ne peut pas être vide");
+        (0, globals_1.expect)(result.errors[0].message).toContain("cannot be empty");
     });
-    (0, globals_1.test)("devrait valider les valeurs de priorité", () => {
+    (0, globals_1.test)("should validate priority values", () => {
         const config = {
             importGroups: [
                 { name: "Test", regex: /^test$/, order: 0, priority: "high" },

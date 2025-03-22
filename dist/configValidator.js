@@ -4,7 +4,7 @@ exports.validateConfig = validateConfig;
 function validateRegExp(regex, field) {
     const errors = [];
     const warnings = [];
-    // 1. Test si la regex peut être utilisée
+    // 1. Test if the regex can be used
     try {
         regex.test("test-string");
     }
@@ -12,31 +12,31 @@ function validateRegExp(regex, field) {
         errors.push({
             type: 'regex',
             field,
-            message: 'Expression régulière invalide',
+            message: 'Invalid regular expression',
             value: regex,
         });
         return { errors, warnings };
     }
-    // 2. Vérifie que la regex est bien formée
+    // 2. Check if the regex is well-formed
     const regexStr = regex.toString();
     if (!regexStr.startsWith('/') || !(/\/[gimsuy]*$/).test(regexStr)) {
         errors.push({
             type: 'regex',
             field,
-            message: 'Expression régulière malformée',
+            message: 'Malformed regular expression',
             value: regex,
         });
         return { errors, warnings };
     }
-    // 3. Vérifie si l'expression est trop permissive
+    // 3. Check if the expression is too permissive
     const regexSource = regex.source;
     if (regexSource === '.*' || regexSource === '.+' || regexSource === '.*?' || regexSource === '.+?' || regexSource === '[^]*' || regexSource === '[\\s\\S]*') {
         warnings.push({
             type: 'regex',
             field,
-            message: 'Expression régulière trop permissive',
+            message: 'Too permissive regular expression',
             value: regex,
-            suggestion: 'Utilisez un pattern plus spécifique',
+            suggestion: 'Use a more specific pattern',
         });
     }
     return { errors, warnings };
@@ -44,34 +44,34 @@ function validateRegExp(regex, field) {
 function validateImportGroup(group) {
     const errors = [];
     const warnings = [];
-    // Validation du nom
+    // Name validation
     if (!group.name || group.name.trim() === '') {
         errors.push({
             type: 'structure',
             field: 'name',
-            message: 'Le nom du groupe ne peut pas être vide',
+            message: 'Group name cannot be empty',
             value: group.name,
         });
     }
-    // Validation de l'ordre
+    // Order validation
     if (typeof group.order !== 'number' || isNaN(group.order)) {
         errors.push({
             type: 'order',
             field: 'order',
-            message: "L'ordre doit être un nombre valide",
+            message: "Order must be a valid number",
             value: group.order,
         });
     }
-    // Validation de la priorité si définie
+    // Priority validation if defined
     if (group.priority !== undefined && (typeof group.priority !== 'number' || isNaN(group.priority))) {
         errors.push({
             type: 'order',
             field: 'priority',
-            message: 'La priorité doit être un nombre valide',
+            message: 'Priority must be a valid number',
             value: group.priority,
         });
     }
-    // Validation du regex si défini
+    // Regex validation if defined
     if (group.regex && !group.isDefault) {
         const validation = validateRegExp(group.regex, 'regex');
         errors.push(...validation.errors);
@@ -83,22 +83,22 @@ function validateTypeOrder(typeOrder) {
     const errors = [];
     const warnings = [];
     const validTypes = ['default', 'named', 'typeDefault', 'typeNamed', 'sideEffect'];
-    // Vérifie que chaque type a un ordre valide
+    // Check that each type has a valid order
     for (const [type, order] of Object.entries(typeOrder)) {
         if (!validTypes.includes(type)) {
             errors.push({
                 type: 'structure',
                 field: 'typeOrder',
-                message: `Type d'import invalide: ${type}`,
+                message: `Invalid import type: ${type}`,
                 value: type,
-                suggestion: `Types valides: ${validTypes.join(', ')}`,
+                suggestion: `Valid types: ${validTypes.join(', ')}`,
             });
         }
         if (typeof order !== 'number' || isNaN(order)) {
             errors.push({
                 type: 'order',
                 field: `typeOrder.${type}`,
-                message: "L'ordre doit être un nombre valide",
+                message: "Order must be a valid number",
                 value: order,
             });
         }
@@ -118,53 +118,53 @@ function validateSourcePatterns(patterns) {
 function validateConfig(config) {
     const errors = [];
     const warnings = [];
-    // Validation des groupes d'imports
+    // Import groups validation
     if (!Array.isArray(config.importGroups) || config.importGroups.length === 0) {
         errors.push({
             type: 'structure',
             field: 'importGroups',
-            message: 'Au moins un groupe d\'import doit être défini',
+            message: 'At least one import group must be defined',
         });
     }
     else {
-        // Vérifie les doublons d'ordre
+        // Check for duplicate orders
         const orders = new Set();
         config.importGroups.forEach(group => {
             if (orders.has(group.order)) {
                 warnings.push({
                     type: 'order',
                     field: 'importGroups',
-                    message: `Ordre en doublon détecté: ${group.order}`,
+                    message: `Duplicate order detected: ${group.order}`,
                     value: group.order,
-                    suggestion: 'Utilisez des ordres uniques pour éviter les ambiguïtés',
+                    suggestion: 'Use unique orders to avoid ambiguity',
                 });
             }
             orders.add(group.order);
-            // Validation individuelle des groupes
+            // Individual group validation
             const validation = validateImportGroup(group);
             errors.push(...validation.errors);
             warnings.push(...validation.warnings);
         });
     }
-    // Validation de typeOrder si défini
+    // typeOrder validation if defined
     if (config.typeOrder) {
         const validation = validateTypeOrder(config.typeOrder);
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }
-    // Validation des patterns si définis
+    // Patterns validation if defined
     if (config.patterns) {
         const validation = validateSourcePatterns(config.patterns);
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }
-    // Validation des imports prioritaires
+    // Priority imports validation
     if (config.priorityImports) {
         if (!Array.isArray(config.priorityImports)) {
             errors.push({
                 type: 'structure',
                 field: 'priorityImports',
-                message: 'priorityImports doit être un tableau',
+                message: 'priorityImports must be an array',
                 value: config.priorityImports,
             });
         }

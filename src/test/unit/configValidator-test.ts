@@ -11,7 +11,7 @@ function createInvalidRegExp(): RegExp {
 }
 
 describe("Config Validator", () => {
-    test("devrait valider une configuration correcte", () => {
+    test("should validate a correct configuration", () => {
         const config: ParserConfig = {
             importGroups: [
                 { name: "React", regex: /^react$/, order: 0 },
@@ -25,20 +25,20 @@ describe("Config Validator", () => {
         expect(result.errors).toHaveLength(0);
     });
 
-    test("devrait détecter une configuration sans groupes", () => {
+    test("should detect a configuration without groups", () => {
         const config: ParserConfig = {
             importGroups: [],
         };
 
         const result = validateConfig(config);
         expect(result.isValid).toBe(false);
-        expect(result.errors[0].message).toContain("Au moins un groupe d'import doit être défini");
+        expect(result.errors[0].message).toContain("At least one import group must be defined");
     });
 
-    test("devrait détecter une expression régulière invalide", () => {
+    test("should detect an invalid regular expression", () => {
         const config: ParserConfig = {
             importGroups: [
-                { name: "Invalid", regex: createInvalidRegExp(), order: 0 }, // RegExp invalide
+                { name: "Invalid", regex: createInvalidRegExp(), order: 0 }, // Invalid RegExp
             ],
         };
 
@@ -47,7 +47,7 @@ describe("Config Validator", () => {
         expect(result.errors[0].type).toBe("regex");
     });
 
-    test("devrait détecter une expression régulière trop permissive", () => {
+    test("should detect a too permissive regular expression", () => {
         const config: ParserConfig = {
             importGroups: [
                 { name: "TooPermissive", regex: /.*/, order: 0 },
@@ -56,10 +56,10 @@ describe("Config Validator", () => {
 
         const result = validateConfig(config);
         expect(result.warnings).toHaveLength(1);
-        expect(result.warnings[0].message).toContain("trop permissive");
+        expect(result.warnings[0].message.toLowerCase()).toContain("too permissive");
     });
 
-    test("devrait valider les ordres des groupes", () => {
+    test("should validate the order of groups", () => {
         const config: ParserConfig = {
             importGroups: [
                 { name: "First", regex: /^first$/, order: 0 },
@@ -69,10 +69,10 @@ describe("Config Validator", () => {
 
         const result = validateConfig(config);
         expect(result.warnings).toHaveLength(1);
-        expect(result.warnings[0].message).toContain("Ordre en doublon détecté");
+        expect(result.warnings[0].message).toContain("Duplicate order detected");
     });
 
-    test("devrait valider le typeOrder", () => {
+    test("should validate typeOrder", () => {
         const config: ParserConfig = {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
             typeOrder: {
@@ -89,11 +89,11 @@ describe("Config Validator", () => {
         expect(result.errors[0].field).toContain("typeOrder");
     });
 
-    test("devrait valider les patterns", () => {
+    test("should validate patterns", () => {
         const config: ParserConfig = {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
             patterns: {
-                appSubfolderPattern: createInvalidRegExp(), // RegExp invalide
+                appSubfolderPattern: createInvalidRegExp(), // Invalid RegExp
             },
         };
 
@@ -103,10 +103,10 @@ describe("Config Validator", () => {
         expect(result.errors[0].field).toBe("appSubfolderPattern");
     });
 
-    test("devrait valider les imports prioritaires", () => {
+    test("should validate priority imports", () => {
         const config: ParserConfig = {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
-            priorityImports: [/^not-a-regex$/, createInvalidRegExp(), /.*/ as RegExp], // Le deuxième pattern est invalide
+            priorityImports: [/^not-a-regex$/, createInvalidRegExp(), /.*/ as RegExp], // The second pattern is invalid
         };
 
         const result = validateConfig(config);
@@ -114,7 +114,7 @@ describe("Config Validator", () => {
         expect(result.errors[0].field).toContain("priorityImports");
     });
 
-    test("devrait valider un groupe par défaut", () => {
+    test("should validate a default group", () => {
         const config: ParserConfig = {
             importGroups: [
                 { name: "Default", isDefault: true, order: 0 },
@@ -127,17 +127,17 @@ describe("Config Validator", () => {
         expect(result.errors).toHaveLength(0);
     });
 
-    test("devrait détecter un nom de groupe vide", () => {
+    test("should detect an empty group name", () => {
         const config: ParserConfig = {
             importGroups: [{ name: "", regex: /^test$/, order: 0 }],
         };
 
         const result = validateConfig(config);
         expect(result.isValid).toBe(false);
-        expect(result.errors[0].message).toContain("ne peut pas être vide");
+        expect(result.errors[0].message).toContain("cannot be empty");
     });
 
-    test("devrait valider les valeurs de priorité", () => {
+    test("should validate priority values", () => {
         const config: ParserConfig = {
             importGroups: [
                 { name: "Test", regex: /^test$/, order: 0, priority: "high" as any },
