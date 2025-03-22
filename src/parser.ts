@@ -459,10 +459,20 @@ class ImportParser {
   }
 
   private determineGroupName(source: string): string {
-    for (const group of this.config.importGroups) {
+    // Séparer les groupes normaux et le groupe par défaut
+    const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
+    const normalGroups = this.config.importGroups.filter((group) => !group.isDefault);
+
+    // Tester d'abord tous les groupes non-défaut
+    for (const group of normalGroups) {
       if (group.regex.test(source)) {
         return group.name;
       }
+    }
+
+    // Si aucun groupe normal ne correspond, utiliser le groupe par défaut
+    if (defaultGroup) {
+      return defaultGroup.name;
     }
 
     return this.defaultGroupName;
