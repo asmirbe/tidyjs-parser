@@ -1,9 +1,8 @@
-import { ImportParser } from "../parser";
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const parser_1 = require("../parser");
 console.log("=== Testing isDefault behavior ===");
-
 function runTest() {
-
     const testCode = `
 // Misc
 import { formatImports } from './formatter';
@@ -21,8 +20,7 @@ import { ImportParser, ParserResult } from 'tidyjs-parser';
 import { Range, window, commands, workspace } from 'vscode';
 import type { ExtensionContext } from 'vscode';
 `;
-
-    const parser = new ImportParser({
+    const parser = new parser_1.ImportParser({
         importGroups: [
             {
                 name: "Miscellaneous",
@@ -42,9 +40,7 @@ import type { ExtensionContext } from 'vscode';
             },
         ],
     });
-
     const result = parser.parse(testCode);
-
     // Checking groups
     console.log("\nDETECTED GROUPS:");
     result.groups.forEach(group => {
@@ -53,35 +49,26 @@ import type { ExtensionContext } from 'vscode';
             console.log(`  ${imp.raw.trim()}`);
         });
     });
-
     // Verify that imports are in the correct groups
     console.log("\nVERIFICATIONS:");
-
     // 1. Check that utils imports are in the Utils group
     const utilsGroup = result.groups.find(g => g.name === "Utils");
     const hasUtilsInCorrectGroup = utilsGroup?.imports.every(imp => imp.source.includes("utils"));
     console.log("✓ Utils in correct group:", hasUtilsInCorrectGroup ? "OK" : "ERROR");
-
     // 2. Check that core imports are in the Core group
     const coreGroup = result.groups.find(g => g.name === "Core");
     const hasCoreInCorrectGroup = coreGroup?.imports.every(imp => imp.source === "tidyjs-parser");
     console.log("✓ Core in correct group:", hasCoreInCorrectGroup ? "OK" : "ERROR");
-
     // 4. Check that only uncategorized imports are in Miscellaneous
     const miscGroup = result.groups.find(g => g.name === "Miscellaneous");
-    const hasMiscOnlyUncategorized = miscGroup?.imports.every(imp =>
-        !imp.source.includes("utils") &&
-        imp.source !== "tidyjs-parser"
-    );
+    const hasMiscOnlyUncategorized = miscGroup?.imports.every(imp => !imp.source.includes("utils") &&
+        imp.source !== "tidyjs-parser");
     console.log("✓ Only uncategorized imports in Misc:", hasMiscOnlyUncategorized ? "OK" : "ERROR");
-
     // Summary
     console.log("\nSUMMARY:");
     const allTestsPassed = hasUtilsInCorrectGroup && hasCoreInCorrectGroup && hasMiscOnlyUncategorized;
     console.log(allTestsPassed ? "✅ All tests passed" : "❌ Some tests failed");
-
     process.exit(allTestsPassed ? 0 : 1);
 }
-
 // Run the test
 runTest();
