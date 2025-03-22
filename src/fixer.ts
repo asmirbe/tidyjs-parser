@@ -73,7 +73,7 @@ export function fixImportStatement(importStmt: string): FixResult {
       return {
         fixed: null,
         isValid: false,
-        errors: ["La déclaration d'import est vide"],
+        errors: ["The import declaration is empty"],
       };
     }
 
@@ -111,15 +111,16 @@ export function fixImportStatement(importStmt: string): FixResult {
         if (errorMessage.includes('Unexpected token, expected "from"')) {
           if (cleanedImport.includes(" as ")) {
             errorMessage +=
-              "\nSuggestion: Si vous utilisez 'as' pour un alias, assurez-vous de la syntaxe correcte:" +
-              "\n- Pour les imports nommés: import { Original as Alias } from 'module';" +
-              "\n- Pour les imports d'espace de noms (namespace): import * as Alias from 'module';" +
-              "\n- La syntaxe 'import Default as Alias from module' n'est pas standard en TypeScript/ES6.";
+              "\nSuggestion: If you're using 'as' for an alias, ensure the correct syntax:" +
+              "\n- For named imports: import { Original as Alias } from 'module';" +
+              "\n- For namespace imports: import * as Alias from 'module';" +
+              "\n- The syntax 'import Default as Alias from module' is not standard in TypeScript/ES6.";
           }
         } else if (errorMessage.includes("Unexpected token")) {
-          errorMessage += "\nVérifiez la syntaxe: Les accolades, virgules et point-virgules sont-ils correctement placés?";
+          errorMessage += "\nCheck the syntax: Are braces, commas, and semicolons correctly placed?";
         } else if (errorMessage.includes("has already been declared")) {
-          errorMessage += "\nVous avez déclaré le même identificateur plusieurs fois dans le même import. " + "Assurez-vous de ne pas avoir de doublons dans votre liste d'imports.";
+          errorMessage += "\nYou have declared the same identifier multiple times in the same import. " +
+            "Make sure you don't have duplicates in your import list.";
         }
 
         errors.push(errorMessage);
@@ -152,10 +153,10 @@ export function fixImportStatement(importStmt: string): FixResult {
 
         if (fixedMatch) {
           errors.push(
-            `Note: La syntaxe 'import ${defaultName} as ${aliasName}' n'est pas standard en ES6/TypeScript. ` +
-            `Elle a été transformée en 'import * as ${aliasName}', mais gardez à l'esprit que ces deux formes ` +
-            "ont des comportements différents. La forme recommandée pour un import par défaut avec alias serait: " +
-            `import { default as ${aliasName} } from '...' ou simplement import ${aliasName} from '...'`
+            `Note: The syntax 'import ${defaultName} as ${aliasName}' is not standard in ES6/TypeScript. ` +
+            `It has been transformed to 'import * as ${aliasName}', but keep in mind that these two forms ` +
+            "have different behaviors. The recommended form for a default import with alias would be: " +
+            `import { default as ${aliasName} } from '...' or simply import ${aliasName} from '...'`
           );
         }
       }
@@ -179,7 +180,7 @@ export function fixImportStatement(importStmt: string): FixResult {
     let errorMessage = error instanceof Error ? error.message : String(error);
 
     if (errorMessage.includes("Cannot read") || errorMessage.includes("undefined")) {
-      errorMessage += ". Cela peut être dû à une syntaxe d'import incorrecte. Vérifiez la structure de votre déclaration d'import.";
+      errorMessage += ". This may be due to incorrect import syntax. Check the structure of your import declaration.";
     }
 
     return {
