@@ -15,7 +15,7 @@ describe('Import Parser RegExp Test', () => {
                     name: "React",
                     order: 1,
                     priority: 1,
-                    regex: /\breact\b/i
+                    regex: new RegExp(/\breact\b/i)
                 },
                 {
                     name: "DS",
@@ -37,6 +37,7 @@ import { Button }  from 'antd';
 `);
 
         // Check that React-related imports are in React group
+        console.log(JSON.stringify(result.groups, null, 2));
         const reactGroup = result.groups.find(g => g.name === "React");
         expect(reactGroup).toBeDefined();
         expect(reactGroup?.imports.length).toBe(4);
