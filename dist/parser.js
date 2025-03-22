@@ -14,30 +14,13 @@ class ImportParser {
         if (validation.warnings.length > 0) {
             console.warn(`Avertissements de configuration:\n${validation.warnings.map(warn => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ''}`).join('\n')}`);
         }
-        // Convert import groups' regex strings to RegExp objects with case-insensitive flag
+        // Import groups are already RegExp objects
         const importGroups = config.importGroups.map(group => {
-            const processRegex = (regex) => {
-                if (!regex)
-                    return undefined;
-                if (typeof regex === 'string') {
-                    try {
-                        // First try to compile the regex as-is (for object literal configs)
-                        return new RegExp(regex, 'i');
-                    }
-                    catch {
-                        // If that fails, try unescaping backslashes (for JSON configs)
-                        const unescapedRegex = regex.replace(/\\([\\])/g, '$1');
-                        return new RegExp(unescapedRegex, 'i');
-                    }
-                }
-                return regex;
-            };
             if (group.isDefault) {
                 // Default group - regex is optional
                 return {
                     ...group,
-                    isDefault: true,
-                    regex: processRegex(group.regex)
+                    isDefault: true
                 };
             }
             else {
@@ -47,31 +30,21 @@ class ImportParser {
                 }
                 return {
                     ...group,
-                    isDefault: false,
-                    regex: processRegex(group.regex)
+                    isDefault: false
                 };
             }
         });
-        // Convert patterns to RegExp objects
+        // Use patterns as is since they're already RegExp objects
         const patterns = {
             ...types_1.DEFAULT_CONFIG.patterns,
-            ...(config.patterns && {
-                ...config.patterns,
-                appSubfolderPattern: config.patterns.appSubfolderPattern
-                    ? (typeof config.patterns.appSubfolderPattern === 'string'
-                        ? new RegExp(config.patterns.appSubfolderPattern, 'i')
-                        : config.patterns.appSubfolderPattern)
-                    : undefined
-            })
+            ...(config.patterns)
         };
-        // Convert priority imports to RegExp objects
-        const priorityImports = config.priorityImports?.map(regex => typeof regex === 'string' ? new RegExp(regex, 'i') : regex);
         this.config = {
             ...config,
             importGroups,
             typeOrder: { ...types_1.DEFAULT_CONFIG.typeOrder, ...(config.typeOrder ?? {}) },
             patterns,
-            priorityImports
+            priorityImports: config.priorityImports
         };
         this.appSubfolders = new Set();
         if (config.defaultGroupName) {
@@ -176,10 +149,7 @@ class ImportParser {
             const groupName = this.determineGroupName(source);
             let appSubfolder = null;
             if (this.patterns.appSubfolderPattern) {
-                const pattern = typeof this.patterns.appSubfolderPattern === 'string'
-                    ? new RegExp(this.patterns.appSubfolderPattern, 'i')
-                    : this.patterns.appSubfolderPattern;
-                const appSubfolderMatch = source.match(pattern);
+                const appSubfolderMatch = source.match(this.patterns.appSubfolderPattern);
                 if (appSubfolderMatch?.[1]) {
                     appSubfolder = appSubfolderMatch[1];
                     this.appSubfolders.add(appSubfolder);
@@ -304,40 +274,13 @@ class ImportParser {
         }
         return Array.from(uniqueSpecs.values());
     }
-    preprocessImport(importStmt) {
-        if (!importStmt.includes("{")) {
-            return importStmt;
-        }
-        try {
-            const importMatch = importStmt.match(/^(import\s+(?:type\s+)?)({[^}]*})(\s+from\s+.+)$/);
-            if (!importMatch) {
-                return importStmt;
-            }
-            const [prefix, specifiersBlock, suffix] = importMatch;
-            const specifiersContent = specifiersBlock.substring(1, specifiersBlock.length - 1);
-            const specifiers = specifiersContent
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean);
-            const uniqueSpecifiers = this.deduplicateSpecifiers(specifiers);
-            const correctedSpecifiers = uniqueSpecifiers.join(", ");
-            return `${prefix}{${correctedSpecifiers}}${suffix}`;
-        }
-        catch {
-            return importStmt;
-        }
-    }
     isSourcePriority(source) {
         if (this.priorityImportPatterns.length > 0) {
-            return this.priorityImportPatterns.some((pattern) => {
-                const regexObj = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern;
-                return regexObj.test(source);
-            });
+            return this.priorityImportPatterns.some(pattern => pattern.test(source));
         }
         const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
         if (defaultGroup?.regex) {
-            const regexObj = typeof defaultGroup.regex === 'string' ? new RegExp(defaultGroup.regex, 'i') : defaultGroup.regex;
-            const regexStr = regexObj.toString();
+            const regexStr = defaultGroup.regex.toString();
             const match = regexStr.match(/\(\s*([^|)]+)/);
             if (match?.[1]) {
                 const firstPattern = match[1].replace(/[^a-zA-Z0-9\-_]/g, "");
@@ -345,6 +288,77 @@ class ImportParser {
             }
         }
         return false;
+    }
+    determineGroupName(source) {
+        // Trouver les groupes qui correspondent au pattern, en excluant le groupe par défaut
+        const matchingGroups = this.config.importGroups.filter(group => {
+            // Pour un groupe par défaut, on ne vérifie pas le regex
+            if (group.isDefault) {
+                return false;
+            }
+            // Pour les autres groupes, on vérifie le regex
+            if (!group.regex)
+                return false;
+            return group.regex.test(source);
+        });
+        if (matchingGroups.length === 0) {
+            // Si aucun groupe ne correspond, utiliser le groupe par défaut
+            const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
+            return defaultGroup ? defaultGroup.name : this.defaultGroupName;
+        }
+        if (matchingGroups.length === 1) {
+            return matchingGroups[0].name;
+        }
+        // Grouper d'abord par priorité
+        const groupsByPriority = new Map();
+        matchingGroups.forEach(group => {
+            const priority = group.priority;
+            if (!groupsByPriority.has(priority)) {
+                groupsByPriority.set(priority, []);
+            }
+            groupsByPriority.get(priority).push(group);
+        });
+        // Traiter d'abord les groupes avec priorité
+        const priorityGroups = Array.from(groupsByPriority.entries())
+            .filter(([priority]) => priority !== undefined)
+            .sort(([a], [b]) => b - a);
+        if (priorityGroups.length > 0) {
+            const [, highestPriorityGroups] = priorityGroups[0];
+            if (highestPriorityGroups.length > 1) {
+                // Pour la même priorité, utiliser la spécificité de la regex
+                return highestPriorityGroups.sort((a, b) => {
+                    // Comparer la longueur des patterns pour une estimation de la spécificité
+                    const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
+                    const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
+                    if (aPattern.length !== bPattern.length) {
+                        return bPattern.length - aPattern.length; // Plus long = plus spécifique
+                    }
+                    // Si même spécificité, utiliser l'ordre puis le nom
+                    if (a.order !== b.order) {
+                        return a.order - b.order;
+                    }
+                    return a.name.localeCompare(b.name);
+                })[0].name;
+            }
+            return highestPriorityGroups[0].name;
+        }
+        // Pour les groupes sans priorité
+        return matchingGroups.sort((a, b) => {
+            if (a.isDefault && !b.isDefault)
+                return 1;
+            if (!a.isDefault && b.isDefault)
+                return -1;
+            // Comparer la spécificité des regex
+            const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
+            const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
+            if (aPattern.length !== bPattern.length) {
+                return bPattern.length - aPattern.length;
+            }
+            if (a.order !== b.order) {
+                return a.order - b.order;
+            }
+            return a.name.localeCompare(b.name);
+        })[0].name;
     }
     cleanImportStatement(importStmt) {
         const lines = importStmt.split("\n");
@@ -435,78 +449,6 @@ class ImportParser {
         const parts2 = extractParts(normalize(import2));
         return parts1.typeMatch === parts2.typeMatch && parts1.source === parts2.source && JSON.stringify(parts1.specifiers.sort()) === JSON.stringify(parts2.specifiers.sort());
     }
-    determineGroupName(source) {
-        // Trouver les groupes qui correspondent au pattern, en excluant le groupe par défaut
-        const matchingGroups = this.config.importGroups.filter(group => {
-            // Pour un groupe par défaut, on ne vérifie pas le regex
-            if (group.isDefault) {
-                return false;
-            }
-            // Pour les autres groupes, on vérifie le regex
-            if (!group.regex)
-                return false;
-            const regexObj = typeof group.regex === 'string' ? new RegExp(group.regex, 'i') : group.regex;
-            return regexObj.test(source);
-        });
-        if (matchingGroups.length === 0) {
-            // Si aucun groupe ne correspond, utiliser le groupe par défaut
-            const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
-            return defaultGroup ? defaultGroup.name : this.defaultGroupName;
-        }
-        if (matchingGroups.length === 1) {
-            return matchingGroups[0].name;
-        }
-        // Grouper d'abord par priorité
-        const groupsByPriority = new Map();
-        matchingGroups.forEach(group => {
-            const priority = group.priority;
-            if (!groupsByPriority.has(priority)) {
-                groupsByPriority.set(priority, []);
-            }
-            groupsByPriority.get(priority).push(group);
-        });
-        // Traiter d'abord les groupes avec priorité
-        const priorityGroups = Array.from(groupsByPriority.entries())
-            .filter(([priority]) => priority !== undefined)
-            .sort(([a], [b]) => b - a);
-        if (priorityGroups.length > 0) {
-            const [, highestPriorityGroups] = priorityGroups[0];
-            if (highestPriorityGroups.length > 1) {
-                // Pour la même priorité, utiliser la spécificité de la regex
-                return highestPriorityGroups.sort((a, b) => {
-                    // Comparer la longueur des patterns pour une estimation de la spécificité
-                    const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
-                    const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
-                    if (aPattern.length !== bPattern.length) {
-                        return bPattern.length - aPattern.length; // Plus long = plus spécifique
-                    }
-                    // Si même spécificité, utiliser l'ordre puis le nom
-                    if (a.order !== b.order) {
-                        return a.order - b.order;
-                    }
-                    return a.name.localeCompare(b.name);
-                })[0].name;
-            }
-            return highestPriorityGroups[0].name;
-        }
-        // Pour les groupes sans priorité
-        return matchingGroups.sort((a, b) => {
-            if (a.isDefault && !b.isDefault)
-                return 1;
-            if (!a.isDefault && b.isDefault)
-                return -1;
-            // Comparer la spécificité des regex
-            const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
-            const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
-            if (aPattern.length !== bPattern.length) {
-                return bPattern.length - aPattern.length;
-            }
-            if (a.order !== b.order) {
-                return a.order - b.order;
-            }
-            return a.name.localeCompare(b.name);
-        })[0].name;
-    }
     organizeImportsIntoGroups(imports) {
         const groupMap = new Map();
         const appSubfolderGroups = new Map();
@@ -562,8 +504,7 @@ class ImportParser {
         const appGroup = this.config.importGroups.find((g) => {
             if (!g.regex)
                 return false;
-            const regexObj = typeof g.regex === 'string' ? new RegExp(g.regex, 'i') : g.regex;
-            return regexObj.toString().includes("@app");
+            return g.regex.toString().includes("@app");
         });
         const appGroupOrder = appGroup ? appGroup.order : 2;
         const appGroupPriority = appGroup ? appGroup.priority : undefined;

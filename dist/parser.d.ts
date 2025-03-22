@@ -14,13 +14,12 @@ declare class ImportParser {
     };
     private parseImport;
     private deduplicateSpecifiers;
-    private preprocessImport;
     private isSourcePriority;
+    private determineGroupName;
     private cleanImportStatement;
     private mergeImports;
     private validateSpecifiersConsistency;
     private areImportsSemanticallyEquivalent;
-    private determineGroupName;
     private organizeImportsIntoGroups;
     private sortImportsWithinGroup;
     getAppSubfolders(): string[];

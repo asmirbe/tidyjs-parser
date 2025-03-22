@@ -4,27 +4,20 @@ exports.validateConfig = validateConfig;
 function validateRegExp(regex, field) {
     const errors = [];
     const warnings = [];
-    let regexObj;
-    // Convert string to RegExp if needed
+    // Only accept RegExp objects
     if (typeof regex === 'string') {
-        try {
-            regexObj = new RegExp(regex);
-        }
-        catch {
-            return {
-                errors: [{
-                        type: 'regex',
-                        field,
-                        message: 'Invalid regular expression string',
-                        value: regex,
-                    }],
-                warnings: []
-            };
-        }
+        return {
+            errors: [{
+                    type: 'regex',
+                    field,
+                    message: 'String patterns are not allowed. Must be a RegExp object',
+                    value: regex,
+                    suggestion: `Use a RegExp object instead, e.g., /${regex}/i`
+                }],
+            warnings: []
+        };
     }
-    else {
-        regexObj = regex;
-    }
+    const regexObj = regex;
     // 1. Test if the regex can be used
     try {
         regexObj.test("test-string");

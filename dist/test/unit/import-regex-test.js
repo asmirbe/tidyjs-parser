@@ -2,39 +2,28 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const globals_1 = require("@jest/globals");
 const parser_1 = require("../../parser");
-(0, globals_1.describe)('Import Parser JSON Config Test', () => {
-    (0, globals_1.it)('should correctly parse imports with JSON string regex pattern', () => {
-        // This simulates how the config would be received from VSCode extension settings
-        // Where the regex pattern is a regular string in JSON
-        const configFromVSCode = {
+(0, globals_1.describe)('Import Parser RegExp Test', () => {
+    (0, globals_1.it)('should correctly parse imports with RegExp pattern', () => {
+        const config = {
             importGroups: [
                 {
                     name: "Miscellaneous",
                     isDefault: true,
-                    order: 0
+                    order: 0,
                 },
                 {
                     name: "React",
                     order: 1,
                     priority: 1,
-                    // In VSCode settings.json, this would be written as "\breact\b"
-                    regex: "\\breact\\b"
+                    regex: /\breact\b/i
                 },
                 {
                     name: "DS",
                     order: 3,
-                    regex: "ds"
+                    regex: /ds/i
                 }
             ]
         };
-        // Convert to JSON string like it would be in VSCode settings
-        // Log the regex pattern at each step to debug the issue
-        console.log('Original regex:', configFromVSCode.importGroups[1].regex);
-        const configJson = JSON.stringify(configFromVSCode);
-        console.log('After stringify:', configJson);
-        // Parse back to simulate how extension would receive it
-        const config = JSON.parse(configJson);
-        console.log('After parse:', config.importGroups[1].regex);
         const parser = new parser_1.ImportParser(config);
         const result = parser.parse(`
 import type { Test } from 'ReacT';
@@ -48,7 +37,6 @@ import { Button }  from 'antd';
         // Check that React-related imports are in React group
         const reactGroup = result.groups.find(g => g.name === "React");
         (0, globals_1.expect)(reactGroup).toBeDefined();
-        console.log('React imports:', reactGroup?.imports.map(imp => imp.raw));
         (0, globals_1.expect)(reactGroup?.imports.length).toBe(4);
         const reactImports = reactGroup?.imports.map(imp => imp.raw);
         (0, globals_1.expect)(reactImports).toContain("import React from 'React';");

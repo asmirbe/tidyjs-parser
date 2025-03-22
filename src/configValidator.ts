@@ -23,26 +23,21 @@ function validateRegExp(regex: RegExp | string, field: string): ValidationRespon
     const errors: ConfigValidationError[] = [];
     const warnings: ConfigValidationError[] = [];
 
-    let regexObj: RegExp;
-
-    // Convert string to RegExp if needed
+    // Only accept RegExp objects
     if (typeof regex === 'string') {
-        try {
-            regexObj = new RegExp(regex);
-        } catch {
-            return {
-                errors: [{
-                    type: 'regex',
-                    field,
-                    message: 'Invalid regular expression string',
-                    value: regex,
-                }],
-                warnings: []
-            };
-        }
-    } else {
-        regexObj = regex;
+        return {
+            errors: [{
+                type: 'regex',
+                field,
+                message: 'String patterns are not allowed. Must be a RegExp object',
+                value: regex,
+                suggestion: `Use a RegExp object instead, e.g., /${regex}/i`
+            }],
+            warnings: []
+        };
     }
+
+    const regexObj = regex;
 
     // 1. Test if the regex can be used
     try {

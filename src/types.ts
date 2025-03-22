@@ -5,11 +5,11 @@ export type ConfigImportGroup = {
 } & (
     | {
       isDefault: true;
-      regex?: RegExp | string;
+      regex?: RegExp;
     }
     | {
       isDefault?: false;
-      regex: RegExp | string;
+      regex: RegExp;
     }
   );
 
@@ -22,7 +22,7 @@ export type TypeOrder = {
 };
 
 export type SourcePatterns = {
-  appSubfolderPattern?: RegExp | string;
+  appSubfolderPattern?: RegExp;
 };
 
 export type ParserConfig = {
@@ -30,7 +30,7 @@ export type ParserConfig = {
   defaultGroupName?: string;
   typeOrder?: TypeOrder;
   patterns?: SourcePatterns;
-  priorityImports?: (RegExp | string)[];
+  priorityImports?: RegExp[];
 };
 
 export interface ParsedImport {

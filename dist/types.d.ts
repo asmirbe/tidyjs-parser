@@ -4,10 +4,10 @@ export type ConfigImportGroup = {
     priority?: number;
 } & ({
     isDefault: true;
-    regex?: RegExp | string;
+    regex?: RegExp;
 } | {
     isDefault?: false;
-    regex: RegExp | string;
+    regex: RegExp;
 });
 export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect";
 export type ImportSource = string;
@@ -16,14 +16,14 @@ export type TypeOrder = {
     [key in ImportType]: number;
 };
 export type SourcePatterns = {
-    appSubfolderPattern?: RegExp | string;
+    appSubfolderPattern?: RegExp;
 };
 export type ParserConfig = {
     importGroups: ConfigImportGroup[];
     defaultGroupName?: string;
     typeOrder?: TypeOrder;
     patterns?: SourcePatterns;
-    priorityImports?: (RegExp | string)[];
+    priorityImports?: RegExp[];
 };
 export interface ParsedImport {
     type: ImportType;
