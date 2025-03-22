@@ -14,10 +14,48 @@ class ImportParser {
         if (validation.warnings.length > 0) {
             console.warn(`Avertissements de configuration:\n${validation.warnings.map(warn => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ''}`).join('\n')}`);
         }
+        // Convert import groups' regex strings to RegExp objects with case-insensitive flag
+        const importGroups = config.importGroups.map(group => {
+            if (group.isDefault) {
+                // Default group - regex is optional
+                return {
+                    ...group,
+                    isDefault: true,
+                    regex: group.regex ? (typeof group.regex === 'string' ? new RegExp(group.regex, 'i') : group.regex) : undefined
+                };
+            }
+            else {
+                // Non-default group - regex is required
+                if (!group.regex) {
+                    throw new errors_1.ImportParserError("Regex is required for non-default groups", JSON.stringify(group));
+                }
+                return {
+                    ...group,
+                    isDefault: false,
+                    regex: typeof group.regex === 'string' ? new RegExp(group.regex, 'i') : group.regex
+                };
+            }
+        });
+        // Convert patterns to RegExp objects
+        const patterns = {
+            ...types_1.DEFAULT_CONFIG.patterns,
+            ...(config.patterns && {
+                ...config.patterns,
+                appSubfolderPattern: config.patterns.appSubfolderPattern
+                    ? (typeof config.patterns.appSubfolderPattern === 'string'
+                        ? new RegExp(config.patterns.appSubfolderPattern, 'i')
+                        : config.patterns.appSubfolderPattern)
+                    : undefined
+            })
+        };
+        // Convert priority imports to RegExp objects
+        const priorityImports = config.priorityImports?.map(regex => typeof regex === 'string' ? new RegExp(regex, 'i') : regex);
         this.config = {
             ...config,
+            importGroups,
             typeOrder: { ...types_1.DEFAULT_CONFIG.typeOrder, ...(config.typeOrder ?? {}) },
-            patterns: { ...types_1.DEFAULT_CONFIG.patterns, ...config.patterns },
+            patterns,
+            priorityImports
         };
         this.appSubfolders = new Set();
         if (config.defaultGroupName) {
@@ -122,7 +160,10 @@ class ImportParser {
             const groupName = this.determineGroupName(source);
             let appSubfolder = null;
             if (this.patterns.appSubfolderPattern) {
-                const appSubfolderMatch = source.match(this.patterns.appSubfolderPattern);
+                const pattern = typeof this.patterns.appSubfolderPattern === 'string'
+                    ? new RegExp(this.patterns.appSubfolderPattern, 'i')
+                    : this.patterns.appSubfolderPattern;
+                const appSubfolderMatch = source.match(pattern);
                 if (appSubfolderMatch?.[1]) {
                     appSubfolder = appSubfolderMatch[1];
                     this.appSubfolders.add(appSubfolder);
@@ -272,11 +313,15 @@ class ImportParser {
     }
     isSourcePriority(source) {
         if (this.priorityImportPatterns.length > 0) {
-            return this.priorityImportPatterns.some((pattern) => pattern.test(source));
+            return this.priorityImportPatterns.some((pattern) => {
+                const regexObj = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern;
+                return regexObj.test(source);
+            });
         }
         const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
         if (defaultGroup?.regex) {
-            const regexStr = defaultGroup.regex.toString();
+            const regexObj = typeof defaultGroup.regex === 'string' ? new RegExp(defaultGroup.regex, 'i') : defaultGroup.regex;
+            const regexStr = regexObj.toString();
             const match = regexStr.match(/\(\s*([^|)]+)/);
             if (match?.[1]) {
                 const firstPattern = match[1].replace(/[^a-zA-Z0-9\-_]/g, "");
@@ -382,7 +427,10 @@ class ImportParser {
                 return false;
             }
             // Pour les autres groupes, on vérifie le regex
-            return group.regex?.test(source) ?? false;
+            if (!group.regex)
+                return false;
+            const regexObj = typeof group.regex === 'string' ? new RegExp(group.regex, 'i') : group.regex;
+            return regexObj.test(source);
         });
         if (matchingGroups.length === 0) {
             // Si aucun groupe ne correspond, utiliser le groupe par défaut
@@ -495,7 +543,12 @@ class ImportParser {
                 });
             }
         }
-        const appGroup = this.config.importGroups.find((g) => g.regex?.toString().includes("@app"));
+        const appGroup = this.config.importGroups.find((g) => {
+            if (!g.regex)
+                return false;
+            const regexObj = typeof g.regex === 'string' ? new RegExp(g.regex, 'i') : g.regex;
+            return regexObj.toString().includes("@app");
+        });
         const appGroupOrder = appGroup ? appGroup.order : 2;
         const appGroupPriority = appGroup ? appGroup.priority : undefined;
         const sortedSubfolders = Array.from(appSubfolderGroups.keys()).sort();

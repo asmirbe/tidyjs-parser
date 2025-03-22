@@ -19,13 +19,34 @@ interface ValidationResponse {
     warnings: ConfigValidationError[];
 }
 
-function validateRegExp(regex: RegExp, field: string): ValidationResponse {
+function validateRegExp(regex: RegExp | string, field: string): ValidationResponse {
     const errors: ConfigValidationError[] = [];
     const warnings: ConfigValidationError[] = [];
 
+    let regexObj: RegExp;
+
+    // Convert string to RegExp if needed
+    if (typeof regex === 'string') {
+        try {
+            regexObj = new RegExp(regex);
+        } catch {
+            return {
+                errors: [{
+                    type: 'regex',
+                    field,
+                    message: 'Invalid regular expression string',
+                    value: regex,
+                }],
+                warnings: []
+            };
+        }
+    } else {
+        regexObj = regex;
+    }
+
     // 1. Test if the regex can be used
     try {
-        regex.test("test-string");
+        regexObj.test("test-string");
     } catch {
         errors.push({
             type: 'regex',
@@ -37,7 +58,7 @@ function validateRegExp(regex: RegExp, field: string): ValidationResponse {
     }
 
     // 2. Check if the regex is well-formed
-    const regexStr = regex.toString();
+    const regexStr = regexObj.toString();
     if (!regexStr.startsWith('/') || !(/\/[gimsuy]*$/).test(regexStr)) {
         errors.push({
             type: 'regex',
@@ -49,7 +70,7 @@ function validateRegExp(regex: RegExp, field: string): ValidationResponse {
     }
 
     // 3. Check if the expression is too permissive
-    const regexSource = regex.source;
+    const regexSource = regexObj.source;
     if (regexSource === '.*' || regexSource === '.+' || regexSource === '.*?' || regexSource === '.+?' || regexSource === '[^]*' || regexSource === '[\\s\\S]*') {
         warnings.push({
             type: 'regex',
