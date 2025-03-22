@@ -14,4 +14,3 @@ function parseImports(sourceCode: string, config: ParserConfig): ParserResult {
 export { ImportParser, ImportParserError, parseImports, validateAndFixImportWithBabel, DEFAULT_CONFIG };
 
 export type { ParserConfig, ConfigImportGroup, ImportGroup, TypeOrder, SourcePatterns, InvalidImport, ParserResult, ParsedImport };
-// Test comment

@@ -16,4 +16,3 @@ function parseImports(sourceCode, config) {
     const appSubfolders = parser.getAppSubfolders();
     return { groups, originalImports, appSubfolders, invalidImports };
 }
-// Test comment

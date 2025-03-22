@@ -1,9 +1,14 @@
 export type ConfigImportGroup = {
     name: string;
-    regex: RegExp;
     order: number;
-    isDefault?: boolean;
-};
+    priority?: number;
+} & ({
+    isDefault: true;
+    regex?: RegExp;
+} | {
+    isDefault?: false;
+    regex: RegExp;
+});
 export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect";
 export type ImportSource = string;
 export type ImportSpecifier = string;
