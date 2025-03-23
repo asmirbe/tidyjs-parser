@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
-import { ImportParser } from "../../parser";
-import { ParserConfig } from "../../types";
+import { ImportParser } from "../../src/parser";
+import { ParserConfig } from "../../src/types";
 
 describe('Import Parser RegExp Test', () => {
     it('should correctly parse imports with RegExp pattern', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import { fixImportStatement, validateAndFixImportWithBabel } from "../../fixer";
+import { fixImportStatement, validateAndFixImportWithBabel } from "../../src/fixer";
 
 describe("fixImportStatement", () => {
     it("should return null for an empty import declaration", () => {

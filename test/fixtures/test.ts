@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // @ts-nocheck
 // @ts-ignore
-import { writeFileSync } from "fs";
-import { parseImports, DEFAULT_CONFIG, ParserConfig } from "../index";
+import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { parseImports, DEFAULT_CONFIG, ParserConfig } from "../../src/index";
 import path from "path";
+
+// Ensure results directory exists
+const resultsDir = path.resolve(__dirname, "./results");
+if (!existsSync(resultsDir)) {
+  mkdirSync(resultsDir, { recursive: true });
+}
 
 const config: ParserConfig = {
   importGroups: [

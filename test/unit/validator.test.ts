@@ -1,5 +1,5 @@
-import { validateConfig } from "../../validator";
-import { ParserConfig } from "../../types";
+import { validateConfig } from "../../src/validator";
+import { ParserConfig } from "../../src/types";
 import { describe, expect, test } from "@jest/globals";
 
 function createInvalidRegExp(): RegExp {

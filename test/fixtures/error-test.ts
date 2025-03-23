@@ -1,6 +1,12 @@
-import { writeFileSync } from "fs";
-import { parseImports, ParserConfig, DEFAULT_CONFIG } from "../index";
+import { writeFileSync, mkdirSync, existsSync } from "fs";
+import { parseImports, ParserConfig, DEFAULT_CONFIG } from "../../src/index";
 import path from "path";
+
+// Ensure results directory exists
+const resultsDir = path.resolve(__dirname, "./results");
+if (!existsSync(resultsDir)) {
+  mkdirSync(resultsDir, { recursive: true });
+}
 
 const config: ParserConfig = {
   importGroups: [
