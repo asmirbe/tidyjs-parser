@@ -1,11 +1,12 @@
 import { ParserConfig, ImportGroup, InvalidImport } from "./types";
 declare class ImportParser {
     private readonly config;
-    private readonly defaultGroupName;
     private readonly typeOrder;
     private readonly patterns;
-    private readonly priorityImportPatterns;
+    private readonly defaultGroup;
     private appSubfolders;
+    private extractPatternsFromRegex;
+    private findMatchIndexInRegex;
     constructor(config: ParserConfig);
     parse(sourceCode: string): {
         groups: ImportGroup[];

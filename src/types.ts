@@ -23,10 +23,8 @@ export type TypeOrder = {
 
 export type ParserConfig = {
   importGroups: ConfigImportGroup[];
-  defaultGroupName?: string;
   typeOrder?: TypeOrder;
   patterns?: SourcePatterns;
-  priorityImports?: RegExp[];
 };
 
 export type ParsedImport = {
@@ -62,7 +60,6 @@ export type SourcePatterns = {
 };
 
 export const DEFAULT_CONFIG: Partial<ParserConfig> = {
-  defaultGroupName: "Misc",
   typeOrder: {
     sideEffect: 0,
     default: 1,

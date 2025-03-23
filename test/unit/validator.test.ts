@@ -103,15 +103,36 @@ describe("Config Validator", () => {
         expect(result.errors[0].field).toBe("subfolderPattern");
     });
 
-    test("should validate priority imports", () => {
+    test("should validate regex patterns for priority ordering", () => {
         const config: ParserConfig = {
-            importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
-            priorityImports: [/^not-a-regex$/, createInvalidRegExp(), /.*/ as RegExp], // The second pattern is invalid
+            importGroups: [
+                {
+                    name: "Test",
+                    regex: createInvalidRegExp(),
+                    order: 0
+                }
+            ]
         };
 
         const result = validateConfig(config);
         expect(result.isValid).toBe(false);
-        expect(result.errors[0].field).toContain("priorityImports");
+        expect(result.errors[0].type).toBe("regex");
+    });
+
+    test("should validate complex regex patterns with alternation", () => {
+        const config: ParserConfig = {
+            importGroups: [
+                {
+                    name: "Components",
+                    regex: /^@components\/(core|shared|ui)\//,
+                    order: 0
+                }
+            ]
+        };
+
+        const result = validateConfig(config);
+        expect(result.isValid).toBe(true);
+        expect(result.errors).toHaveLength(0);
     });
 
     test("should validate a default group", () => {

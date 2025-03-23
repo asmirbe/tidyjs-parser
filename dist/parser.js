@@ -6,6 +6,22 @@ const errors_1 = require("./errors");
 const types_1 = require("./types");
 const validator_1 = require("./validator");
 class ImportParser {
+    extractPatternsFromRegex(regexStr) {
+        const match = regexStr.match(/\(\s*([^)]+)\)/);
+        if (!match?.[1])
+            return [];
+        return match[1].split('|').map(p => p.trim());
+    }
+    findMatchIndexInRegex(source, regex) {
+        const regexStr = regex.toString();
+        const patterns = this.extractPatternsFromRegex(regexStr);
+        for (let i = 0; i < patterns.length; i++) {
+            if (new RegExp(patterns[i]).test(source)) {
+                return i;
+            }
+        }
+        return patterns.length;
+    }
     constructor(config) {
         const validation = (0, validator_1.validateConfig)(config);
         if (!validation.isValid) {
@@ -43,20 +59,13 @@ class ImportParser {
             ...config,
             importGroups,
             typeOrder: { ...types_1.DEFAULT_CONFIG.typeOrder, ...(config.typeOrder ?? {}) },
-            patterns,
-            priorityImports: config.priorityImports
+            patterns
         };
         this.appSubfolders = new Set();
-        if (config.defaultGroupName) {
-            this.defaultGroupName = config.defaultGroupName;
-        }
-        else {
-            const defaultGroup = config.importGroups.find((g) => g.isDefault);
-            this.defaultGroupName = defaultGroup ? defaultGroup.name : "Misc";
-        }
+        const defaultGroup = config.importGroups.find((g) => g.isDefault);
+        this.defaultGroup = defaultGroup ? defaultGroup.name : "Misc";
         this.typeOrder = this.config.typeOrder;
         this.patterns = this.config.patterns;
-        this.priorityImportPatterns = this.config.priorityImports ?? [];
     }
     parse(sourceCode) {
         const importRegex = /(?:^|\n)\s*import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/g;
@@ -275,36 +284,36 @@ class ImportParser {
         return Array.from(uniqueSpecs.values());
     }
     isSourcePriority(source) {
-        if (this.priorityImportPatterns.length > 0) {
-            return this.priorityImportPatterns.some(pattern => pattern.test(source));
-        }
-        const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
-        if (defaultGroup?.regex) {
-            const regexStr = defaultGroup.regex.toString();
-            const match = regexStr.match(/\(\s*([^|)]+)/);
-            if (match?.[1]) {
-                const firstPattern = match[1].replace(/[^a-zA-Z0-9\-_]/g, "");
-                return new RegExp(`^${firstPattern}`).test(source);
-            }
-        }
-        return false;
+        const currentGroup = this.config.importGroups.find(group => {
+            if (!group.regex)
+                return false;
+            return group.regex.test(source);
+        });
+        if (!currentGroup?.regex)
+            return false;
+        const regexStr = currentGroup.regex.toString();
+        if (!regexStr.includes('(') || !regexStr.includes('|'))
+            return false;
+        // Si le source correspond au premier pattern dans le regex, c'est prioritaire
+        const patterns = this.extractPatternsFromRegex(regexStr);
+        if (patterns.length === 0)
+            return false;
+        return new RegExp(patterns[0]).test(source);
     }
     determineGroupName(source) {
-        // Trouver les groupes qui correspondent au pattern, en excluant le groupe par défaut
+        // On cherche d'abord le groupe par défaut pour l'avoir sous la main
+        const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
+        const defaultGroupName = defaultGroup ? defaultGroup.name : this.defaultGroup;
+        // Trouver tous les groupes non-default qui correspondent au pattern
         const matchingGroups = this.config.importGroups.filter(group => {
-            // Pour un groupe par défaut, on ne vérifie pas le regex
-            if (group.isDefault) {
+            if (group.isDefault)
                 return false;
-            }
-            // Pour les autres groupes, on vérifie le regex
             if (!group.regex)
                 return false;
             return group.regex.test(source);
         });
         if (matchingGroups.length === 0) {
-            // Si aucun groupe ne correspond, utiliser le groupe par défaut
-            const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
-            return defaultGroup ? defaultGroup.name : this.defaultGroupName;
+            return defaultGroupName;
         }
         if (matchingGroups.length === 1) {
             return matchingGroups[0].name;
@@ -460,10 +469,10 @@ class ImportParser {
             });
             groupMap.set(group.name, []);
         });
-        if (!groupMap.has(this.defaultGroupName)) {
+        if (!groupMap.has(this.defaultGroup)) {
             const defaultOrder = 999;
-            groupMap.set(this.defaultGroupName, []);
-            configGroupMap.set(this.defaultGroupName, {
+            groupMap.set(this.defaultGroup, []);
+            configGroupMap.set(this.defaultGroup, {
                 order: defaultOrder,
                 priority: 0,
             });
@@ -481,7 +490,7 @@ class ImportParser {
                 groupMap.get(importObj.groupName).push(importObj);
             }
             else {
-                groupMap.get(this.defaultGroupName).push(importObj);
+                groupMap.get(this.defaultGroup).push(importObj);
             }
         });
         groupMap.forEach((importsInGroup, groupName) => {

@@ -17,10 +17,8 @@ export type TypeOrder = {
 };
 export type ParserConfig = {
     importGroups: ConfigImportGroup[];
-    defaultGroupName?: string;
     typeOrder?: TypeOrder;
     patterns?: SourcePatterns;
-    priorityImports?: RegExp[];
 };
 export type ParsedImport = {
     type: ImportType;

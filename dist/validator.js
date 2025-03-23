@@ -172,24 +172,6 @@ function validateConfig(config) {
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }
-    // Priority imports validation
-    if (config.priorityImports) {
-        if (!Array.isArray(config.priorityImports)) {
-            errors.push({
-                type: 'structure',
-                field: 'priorityImports',
-                message: 'priorityImports must be an array',
-                value: config.priorityImports,
-            });
-        }
-        else {
-            config.priorityImports.forEach((regex, index) => {
-                const validation = validateRegExp(regex, `priorityImports[${index}]`);
-                errors.push(...validation.errors);
-                warnings.push(...validation.warnings);
-            });
-        }
-    }
     return {
         isValid: errors.length === 0,
         errors,
