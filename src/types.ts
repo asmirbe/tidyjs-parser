@@ -21,10 +21,6 @@ export type TypeOrder = {
   [key in ImportType]: number;
 };
 
-export type SourcePatterns = {
-  appSubfolderPattern?: RegExp;
-};
-
 export type ParserConfig = {
   importGroups: ConfigImportGroup[];
   defaultGroupName?: string;
@@ -61,6 +57,10 @@ export type ParserResult = {
   invalidImports?: InvalidImport[];
 }
 
+export type SourcePatterns = {
+  subfolderPattern?: RegExp;
+};
+
 export const DEFAULT_CONFIG: Partial<ParserConfig> = {
   defaultGroupName: "Misc",
   typeOrder: {
@@ -70,7 +70,5 @@ export const DEFAULT_CONFIG: Partial<ParserConfig> = {
     typeDefault: 3,
     typeNamed: 4,
   },
-  patterns: {
-    appSubfolderPattern: /@app\/([^/]+)/,
-  },
+  patterns: {},
 };

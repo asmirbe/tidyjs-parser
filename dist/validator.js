@@ -122,8 +122,8 @@ function validateTypeOrder(typeOrder) {
 function validateSourcePatterns(patterns) {
     const errors = [];
     const warnings = [];
-    if (patterns.appSubfolderPattern) {
-        const validation = validateRegExp(patterns.appSubfolderPattern, 'appSubfolderPattern');
+    if (patterns.subfolderPattern) {
+        const validation = validateRegExp(patterns.subfolderPattern, 'subfolderPattern');
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }

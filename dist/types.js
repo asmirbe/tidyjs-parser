@@ -10,7 +10,5 @@ exports.DEFAULT_CONFIG = {
         typeDefault: 3,
         typeNamed: 4,
     },
-    patterns: {
-        appSubfolderPattern: /@app\/([^/]+)/,
-    },
+    patterns: {},
 };

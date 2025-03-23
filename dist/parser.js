@@ -148,8 +148,8 @@ class ImportParser {
             const isPriority = this.isSourcePriority(source);
             const groupName = this.determineGroupName(source);
             let appSubfolder = null;
-            if (this.patterns.appSubfolderPattern) {
-                const appSubfolderMatch = source.match(this.patterns.appSubfolderPattern);
+            if (this.patterns.subfolderPattern) {
+                const appSubfolderMatch = source.match(this.patterns.subfolderPattern);
                 if (appSubfolderMatch?.[1]) {
                     appSubfolder = appSubfolderMatch[1];
                     this.appSubfolders.add(appSubfolder);
@@ -471,7 +471,7 @@ class ImportParser {
         imports.forEach((importObj) => {
             if (importObj.appSubfolder) {
                 const subfolder = importObj.appSubfolder;
-                const groupName = `@app/${subfolder}`;
+                const groupName = subfolder;
                 if (!appSubfolderGroups.has(groupName)) {
                     appSubfolderGroups.set(groupName, []);
                 }
@@ -504,7 +504,7 @@ class ImportParser {
         const appGroup = this.config.importGroups.find((g) => {
             if (!g.regex)
                 return false;
-            return g.regex.toString().includes("@app");
+            return g.regex && this.patterns.subfolderPattern && g.regex.toString().includes(this.patterns.subfolderPattern.toString().slice(1, -1));
         });
         const appGroupOrder = appGroup ? appGroup.order : 2;
         const appGroupPriority = appGroup ? appGroup.priority : undefined;

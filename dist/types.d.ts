@@ -15,9 +15,6 @@ export type ImportSpecifier = string;
 export type TypeOrder = {
     [key in ImportType]: number;
 };
-export type SourcePatterns = {
-    appSubfolderPattern?: RegExp;
-};
 export type ParserConfig = {
     importGroups: ConfigImportGroup[];
     defaultGroupName?: string;
@@ -48,6 +45,9 @@ export type ParserResult = {
     originalImports: string[];
     appSubfolders: string[];
     invalidImports?: InvalidImport[];
+};
+export type SourcePatterns = {
+    subfolderPattern?: RegExp;
 };
 export declare const DEFAULT_CONFIG: Partial<ParserConfig>;
 //# sourceMappingURL=types.d.ts.map

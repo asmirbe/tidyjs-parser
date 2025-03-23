@@ -157,8 +157,8 @@ function validateSourcePatterns(patterns: SourcePatterns): ValidationResponse {
     const errors: ConfigValidationError[] = [];
     const warnings: ConfigValidationError[] = [];
 
-    if (patterns.appSubfolderPattern) {
-        const validation = validateRegExp(patterns.appSubfolderPattern, 'appSubfolderPattern');
+    if (patterns.subfolderPattern) {
+        const validation = validateRegExp(patterns.subfolderPattern, 'subfolderPattern');
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }

@@ -93,14 +93,14 @@ describe("Config Validator", () => {
         const config: ParserConfig = {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
             patterns: {
-                appSubfolderPattern: createInvalidRegExp(), // Invalid RegExp
+                subfolderPattern: createInvalidRegExp(), // Invalid RegExp
             },
         };
 
         const result = validateConfig(config);
         expect(result.isValid).toBe(false);
         expect(result.errors[0].type).toBe("regex");
-        expect(result.errors[0].field).toBe("appSubfolderPattern");
+        expect(result.errors[0].field).toBe("subfolderPattern");
     });
 
     test("should validate priority imports", () => {

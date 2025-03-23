@@ -16,7 +16,7 @@ const config: ParserConfig = {
   ],
   patterns: {
     ...DEFAULT_CONFIG.patterns,
-    appSubfolderPattern: /@app\/([^/]+)/,
+    subfolderPattern: /@app\/([^/]+)/,
   },
 };
 
