@@ -8,3 +8,4 @@ yarn-error.log*
 memory-bank/
 .DS_Store
 results
+coverage
