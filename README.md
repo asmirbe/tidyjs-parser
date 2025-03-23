@@ -45,7 +45,7 @@ const config: ParserConfig = {
     typeNamed: 4,
   },
   patterns: {
-    appSubfolderPattern: /@app\/([^/]+)/,
+    subfolderPattern: /@app\/([^/]+)/,
   },
 };
 
@@ -201,53 +201,10 @@ Path patterns allow dynamically creating groups based on import paths:
 const config: ParserConfig = {
   // ...
   patterns: {
-    appSubfolderPattern: /@app\/([^/]+)/,
+    subfolderPattern: /@app\/([^/]+)/,
   },
   // ...
 };
-```
-
-## Examples
-
-### Simple Example
-
-```typescript
-// Input
-import type { Test } from "react";
-import { useState } from "react";
-import type Test from "react";
-import { YpButton } from "ds";
-import React from "react";
-
-// Output (after formatting)
-// Misc
-import React from "react";
-import { useState } from "react";
-import type Test from "react";
-import type { Test } from "react";
-// DS
-import { YpButton } from "ds";
-```
-
-### Example with Dynamic Groups
-
-```typescript
-// Input
-import AbsenceInitFormComponent from "@app/folder/components/absences/init/AbsenceInitFormComponent";
-import { useClientNotification } from "@app/notification/ClientNotificationProvider";
-import AccordFormComponent from "@app/folder/components/britania/init/AbsenceInitFormComponent";
-import useUtilisateurSearch from "@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider";
-import AbsencesFormComponent from "@app/folder/components/absences/init/AbsencesFormComponent";
-
-// Output (after formatting)
-// @app/client
-import useUtilisateurSearch from "@app/client/providers/parametrage/utilisateurs/UtilisateurSearchProvider";
-// @app/folder
-import AbsenceInitFormComponent from "@app/folder/components/absences/init/AbsenceInitFormComponent";
-import AbsencesFormComponent from "@app/folder/components/absences/init/AbsencesFormComponent";
-import AccordFormComponent from "@app/folder/components/britania/init/AbsenceInitFormComponent";
-// @app/notification
-import { useClientNotification } from "@app/notification/ClientNotificationProvider";
 ```
 
 ## Tests
@@ -255,7 +212,11 @@ import { useClientNotification } from "@app/notification/ClientNotificationProvi
 The project includes tests to verify the proper functioning of the parser:
 
 ```bash
+// Functionnal tests
 npm run test
+
+// Unit tests
+npm run unit:test
 ```
 
 ## License
