@@ -1,7 +1,7 @@
 import { validateAndFixImportWithBabel } from "./fixer";
 import { ImportParserError } from "./errors";
 import { ParserConfig, ParsedImport, ImportGroup, TypeOrder, SourcePatterns, InvalidImport, DEFAULT_CONFIG, ConfigImportGroup } from "./types";
-import { validateConfig } from "./configValidator";
+import { validateConfig } from "./validator";
 
 class ImportParser {
   private readonly config: ParserConfig;

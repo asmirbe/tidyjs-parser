@@ -1,4 +1,4 @@
-import { validateConfig } from "../../configValidator";
+import { validateConfig } from "../../validator";
 import { ParserConfig } from "../../types";
 import { describe, expect, test } from "@jest/globals";
 

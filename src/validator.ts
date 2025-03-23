@@ -1,6 +1,6 @@
 import { ParserConfig, ConfigImportGroup, TypeOrder, SourcePatterns } from './types';
 
-export interface ConfigValidationError {
+export type ConfigValidationError = {
     type: 'regex' | 'order' | 'structure';
     field: string;
     message: string;
@@ -8,13 +8,13 @@ export interface ConfigValidationError {
     suggestion?: string;
 }
 
-export interface ValidationResult {
+export type ValidationResult = {
     isValid: boolean;
     errors: ConfigValidationError[];
     warnings: ConfigValidationError[];
 }
 
-interface ValidationResponse {
+type ValidationResponse = {
     errors: ConfigValidationError[];
     warnings: ConfigValidationError[];
 }

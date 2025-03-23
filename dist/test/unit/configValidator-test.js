@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const configValidator_1 = require("../../configValidator");
+const validator_1 = require("../../validator");
 const globals_1 = require("@jest/globals");
 function createInvalidRegExp() {
     const invalidRegExp = new RegExp('a');
@@ -18,7 +18,7 @@ function createInvalidRegExp() {
                 { name: "Utils", regex: /^@utils/, order: 2 },
             ],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(true);
         (0, globals_1.expect)(result.errors).toHaveLength(0);
     });
@@ -26,7 +26,7 @@ function createInvalidRegExp() {
         const config = {
             importGroups: [],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].message).toContain("At least one import group must be defined");
     });
@@ -36,7 +36,7 @@ function createInvalidRegExp() {
                 { name: "Invalid", regex: createInvalidRegExp(), order: 0 }, // Invalid RegExp
             ],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].type).toBe("regex");
     });
@@ -46,7 +46,7 @@ function createInvalidRegExp() {
                 { name: "TooPermissive", regex: /.*/, order: 0 },
             ],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.warnings).toHaveLength(1);
         (0, globals_1.expect)(result.warnings[0].message.toLowerCase()).toContain("too permissive");
     });
@@ -57,7 +57,7 @@ function createInvalidRegExp() {
                 { name: "Also First", regex: /^also-first$/, order: 0 },
             ],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.warnings).toHaveLength(1);
         (0, globals_1.expect)(result.warnings[0].message).toContain("Duplicate order detected");
     });
@@ -72,7 +72,7 @@ function createInvalidRegExp() {
                 typeNamed: 4,
             },
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].field).toContain("typeOrder");
     });
@@ -83,7 +83,7 @@ function createInvalidRegExp() {
                 appSubfolderPattern: createInvalidRegExp(), // Invalid RegExp
             },
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].type).toBe("regex");
         (0, globals_1.expect)(result.errors[0].field).toBe("appSubfolderPattern");
@@ -93,7 +93,7 @@ function createInvalidRegExp() {
             importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
             priorityImports: [/^not-a-regex$/, createInvalidRegExp(), /.*/], // The second pattern is invalid
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].field).toContain("priorityImports");
     });
@@ -104,7 +104,7 @@ function createInvalidRegExp() {
                 { name: "Test", regex: /^test$/, order: 1 },
             ],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(true);
         (0, globals_1.expect)(result.errors).toHaveLength(0);
     });
@@ -112,7 +112,7 @@ function createInvalidRegExp() {
         const config = {
             importGroups: [{ name: "", regex: /^test$/, order: 0 }],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].message).toContain("cannot be empty");
     });
@@ -122,7 +122,7 @@ function createInvalidRegExp() {
                 { name: "Test", regex: /^test$/, order: 0, priority: "high" },
             ],
         };
-        const result = (0, configValidator_1.validateConfig)(config);
+        const result = (0, validator_1.validateConfig)(config);
         (0, globals_1.expect)(result.isValid).toBe(false);
         (0, globals_1.expect)(result.errors[0].field).toBe("priority");
     });

@@ -4,10 +4,10 @@ exports.ImportParser = void 0;
 const fixer_1 = require("./fixer");
 const errors_1 = require("./errors");
 const types_1 = require("./types");
-const configValidator_1 = require("./configValidator");
+const validator_1 = require("./validator");
 class ImportParser {
     constructor(config) {
-        const validation = (0, configValidator_1.validateConfig)(config);
+        const validation = (0, validator_1.validateConfig)(config);
         if (!validation.isValid) {
             throw new errors_1.ImportParserError(`Configuration invalide:\n${validation.errors.map(err => `  - [${err.field}] ${err.message}${err.suggestion ? `\n    Suggestion: ${err.suggestion}` : ''}`).join('\n')}`, JSON.stringify(config, null, 2));
         }

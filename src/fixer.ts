@@ -1,7 +1,7 @@
 import { parse } from "@babel/parser";
 import generate from "@babel/generator";
 
-export interface FixResult {
+export type FixResult = {
   fixed: string | null;
   isValid: boolean;
   errors: string[];

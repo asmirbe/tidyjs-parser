@@ -37,7 +37,6 @@ import { Button }  from 'antd';
 `);
 
         // Check that React-related imports are in React group
-        console.log(JSON.stringify(result.groups, null, 2));
         const reactGroup = result.groups.find(g => g.name === "React");
         expect(reactGroup).toBeDefined();
         expect(reactGroup?.imports.length).toBe(4);

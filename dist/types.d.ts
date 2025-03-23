@@ -25,7 +25,7 @@ export type ParserConfig = {
     patterns?: SourcePatterns;
     priorityImports?: RegExp[];
 };
-export interface ParsedImport {
+export type ParsedImport = {
     type: ImportType;
     source: ImportSource;
     specifiers: ImportSpecifier[];
@@ -33,21 +33,21 @@ export interface ParsedImport {
     groupName: string | null;
     isPriority: boolean;
     appSubfolder: string | null;
-}
-export interface ImportGroup {
+};
+export type ImportGroup = {
     name: string;
     order: number;
     imports: ParsedImport[];
-}
-export interface InvalidImport {
+};
+export type InvalidImport = {
     raw: string;
     error: string;
-}
-export interface ParserResult {
+};
+export type ParserResult = {
     groups: ImportGroup[];
     originalImports: string[];
     appSubfolders: string[];
     invalidImports?: InvalidImport[];
-}
+};
 export declare const DEFAULT_CONFIG: Partial<ParserConfig>;
 //# sourceMappingURL=types.d.ts.map
