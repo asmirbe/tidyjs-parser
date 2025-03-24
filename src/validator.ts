@@ -23,7 +23,6 @@ function validateRegExp(regex: RegExp | string, field: string): ValidationRespon
     const errors: ConfigValidationError[] = [];
     const warnings: ConfigValidationError[] = [];
 
-    // Only accept RegExp objects
     if (typeof regex === 'string') {
         return {
             errors: [{
@@ -39,7 +38,6 @@ function validateRegExp(regex: RegExp | string, field: string): ValidationRespon
 
     const regexObj = regex;
 
-    // 1. Test if the regex can be used
     try {
         regexObj.test("test-string");
     } catch {
@@ -52,7 +50,6 @@ function validateRegExp(regex: RegExp | string, field: string): ValidationRespon
         return { errors, warnings };
     }
 
-    // 2. Check if the regex is well-formed
     const regexStr = regexObj.toString();
     if (!regexStr.startsWith('/') || !(/\/[gimsuy]*$/).test(regexStr)) {
         errors.push({
@@ -64,7 +61,6 @@ function validateRegExp(regex: RegExp | string, field: string): ValidationRespon
         return { errors, warnings };
     }
 
-    // 3. Check if the expression is too permissive
     const regexSource = regexObj.source;
     if (regexSource === '.*' || regexSource === '.+' || regexSource === '.*?' || regexSource === '.+?' || regexSource === '[^]*' || regexSource === '[\\s\\S]*') {
         warnings.push({
@@ -83,7 +79,6 @@ function validateImportGroup(group: ConfigImportGroup): ValidationResponse {
     const errors: ConfigValidationError[] = [];
     const warnings: ConfigValidationError[] = [];
 
-    // Name validation
     if (!group.name || group.name.trim() === '') {
         errors.push({
             type: 'structure',
@@ -93,7 +88,6 @@ function validateImportGroup(group: ConfigImportGroup): ValidationResponse {
         });
     }
 
-    // Order validation
     if (typeof group.order !== 'number' || isNaN(group.order)) {
         errors.push({
             type: 'order',
@@ -103,7 +97,6 @@ function validateImportGroup(group: ConfigImportGroup): ValidationResponse {
         });
     }
 
-    // Priority validation if defined
     if (group.priority !== undefined && (typeof group.priority !== 'number' || isNaN(group.priority))) {
         errors.push({
             type: 'order',
@@ -113,7 +106,6 @@ function validateImportGroup(group: ConfigImportGroup): ValidationResponse {
         });
     }
 
-    // Regex validation if defined
     if (group.regex && !group.isDefault) {
         const validation = validateRegExp(group.regex, 'regex');
         errors.push(...validation.errors);
@@ -128,7 +120,6 @@ function validateTypeOrder(typeOrder: TypeOrder): ValidationResponse {
     const warnings: ConfigValidationError[] = [];
     const validTypes = ['default', 'named', 'typeDefault', 'typeNamed', 'sideEffect'];
 
-    // Check that each type has a valid order
     for (const [type, order] of Object.entries(typeOrder)) {
         if (!validTypes.includes(type)) {
             errors.push({
@@ -170,7 +161,6 @@ export function validateConfig(config: ParserConfig): ValidationResult {
     const errors: ConfigValidationError[] = [];
     const warnings: ConfigValidationError[] = [];
 
-    // Import groups validation
     if (!Array.isArray(config.importGroups) || config.importGroups.length === 0) {
         errors.push({
             type: 'structure',
@@ -178,7 +168,6 @@ export function validateConfig(config: ParserConfig): ValidationResult {
             message: 'At least one import group must be defined',
         });
     } else {
-        // Check for duplicate orders
         const orders = new Set<number>();
         config.importGroups.forEach(group => {
             if (orders.has(group.order)) {
@@ -192,21 +181,18 @@ export function validateConfig(config: ParserConfig): ValidationResult {
             }
             orders.add(group.order);
 
-            // Individual group validation
             const validation = validateImportGroup(group);
             errors.push(...validation.errors);
             warnings.push(...validation.warnings);
         });
     }
 
-    // typeOrder validation if defined
     if (config.typeOrder) {
         const validation = validateTypeOrder(config.typeOrder);
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }
 
-    // Patterns validation if defined
     if (config.patterns) {
         const validation = validateSourcePatterns(config.patterns);
         errors.push(...validation.errors);

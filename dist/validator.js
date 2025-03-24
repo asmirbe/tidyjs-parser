@@ -4,7 +4,6 @@ exports.validateConfig = validateConfig;
 function validateRegExp(regex, field) {
     const errors = [];
     const warnings = [];
-    // Only accept RegExp objects
     if (typeof regex === 'string') {
         return {
             errors: [{
@@ -18,7 +17,6 @@ function validateRegExp(regex, field) {
         };
     }
     const regexObj = regex;
-    // 1. Test if the regex can be used
     try {
         regexObj.test("test-string");
     }
@@ -31,7 +29,6 @@ function validateRegExp(regex, field) {
         });
         return { errors, warnings };
     }
-    // 2. Check if the regex is well-formed
     const regexStr = regexObj.toString();
     if (!regexStr.startsWith('/') || !(/\/[gimsuy]*$/).test(regexStr)) {
         errors.push({
@@ -42,7 +39,6 @@ function validateRegExp(regex, field) {
         });
         return { errors, warnings };
     }
-    // 3. Check if the expression is too permissive
     const regexSource = regexObj.source;
     if (regexSource === '.*' || regexSource === '.+' || regexSource === '.*?' || regexSource === '.+?' || regexSource === '[^]*' || regexSource === '[\\s\\S]*') {
         warnings.push({
@@ -58,7 +54,6 @@ function validateRegExp(regex, field) {
 function validateImportGroup(group) {
     const errors = [];
     const warnings = [];
-    // Name validation
     if (!group.name || group.name.trim() === '') {
         errors.push({
             type: 'structure',
@@ -67,7 +62,6 @@ function validateImportGroup(group) {
             value: group.name,
         });
     }
-    // Order validation
     if (typeof group.order !== 'number' || isNaN(group.order)) {
         errors.push({
             type: 'order',
@@ -76,7 +70,6 @@ function validateImportGroup(group) {
             value: group.order,
         });
     }
-    // Priority validation if defined
     if (group.priority !== undefined && (typeof group.priority !== 'number' || isNaN(group.priority))) {
         errors.push({
             type: 'order',
@@ -85,7 +78,6 @@ function validateImportGroup(group) {
             value: group.priority,
         });
     }
-    // Regex validation if defined
     if (group.regex && !group.isDefault) {
         const validation = validateRegExp(group.regex, 'regex');
         errors.push(...validation.errors);
@@ -97,7 +89,6 @@ function validateTypeOrder(typeOrder) {
     const errors = [];
     const warnings = [];
     const validTypes = ['default', 'named', 'typeDefault', 'typeNamed', 'sideEffect'];
-    // Check that each type has a valid order
     for (const [type, order] of Object.entries(typeOrder)) {
         if (!validTypes.includes(type)) {
             errors.push({
@@ -132,7 +123,6 @@ function validateSourcePatterns(patterns) {
 function validateConfig(config) {
     const errors = [];
     const warnings = [];
-    // Import groups validation
     if (!Array.isArray(config.importGroups) || config.importGroups.length === 0) {
         errors.push({
             type: 'structure',
@@ -141,7 +131,6 @@ function validateConfig(config) {
         });
     }
     else {
-        // Check for duplicate orders
         const orders = new Set();
         config.importGroups.forEach(group => {
             if (orders.has(group.order)) {
@@ -154,19 +143,16 @@ function validateConfig(config) {
                 });
             }
             orders.add(group.order);
-            // Individual group validation
             const validation = validateImportGroup(group);
             errors.push(...validation.errors);
             warnings.push(...validation.warnings);
         });
     }
-    // typeOrder validation if defined
     if (config.typeOrder) {
         const validation = validateTypeOrder(config.typeOrder);
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }
-    // Patterns validation if defined
     if (config.patterns) {
         const validation = validateSourcePatterns(config.patterns);
         errors.push(...validation.errors);

@@ -18,12 +18,10 @@ function fixDuplicateSpecifiers(importStmt) {
         }
         const [, prefix, specifiersBlock, suffix] = importParts;
         const specifiersContent = specifiersBlock.substring(1, specifiersBlock.length - 1);
-        // Utiliser une regex pour splitter plus précisément les spécificateurs
         const rawSpecifiers = specifiersContent
             .split(/\s*,\s*/)
             .map(s => s.trim())
             .filter(s => s.length > 0);
-        // Utiliser un Set pour gérer automatiquement les doublons
         const uniqueSpecs = new Set();
         for (const spec of rawSpecifiers) {
             const isType = spec.startsWith("type ");
@@ -78,7 +76,6 @@ function fixImportStatement(importStmt) {
                     errors: [`Failed to fix duplicate specifiers: ${duplicates.join(', ')}`]
                 };
             }
-            // Verify that duplicates were actually removed
             const remainingDuplicates = detectDuplicateSpecifiers(fixedImport);
             if (remainingDuplicates) {
                 return {

@@ -47,16 +47,13 @@ class ImportParser {
       );
     }
 
-    // Import groups are already RegExp objects
     const importGroups = config.importGroups.map(group => {
       if (group.isDefault) {
-        // Default group - regex is optional
         return {
           ...group,
           isDefault: true
         };
       } else {
-        // Non-default group - regex is required
         if (!group.regex) {
           throw new ImportParserError("Regex is required for non-default groups", JSON.stringify(group));
         }
@@ -67,7 +64,6 @@ class ImportParser {
       }
     }) as ConfigImportGroup[];
 
-    // Use patterns as is since they're already RegExp objects
     const patterns = {
       ...DEFAULT_CONFIG.patterns,
       ...(config.patterns)
@@ -357,7 +353,6 @@ class ImportParser {
     const regexStr = currentGroup.regex.toString();
     if (!regexStr.includes('(') || !regexStr.includes('|')) return false;
 
-    // Si le source correspond au premier pattern dans le regex, c'est prioritaire
     const patterns = this.extractPatternsFromRegex(regexStr);
     if (patterns.length === 0) return false;
 
@@ -365,11 +360,9 @@ class ImportParser {
   }
 
   private determineGroupName(source: string): string {
-    // On cherche d'abord le groupe par défaut pour l'avoir sous la main
     const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
     const defaultGroupName = defaultGroup ? defaultGroup.name : this.defaultGroup;
 
-    // Trouver tous les groupes non-default qui correspondent au pattern
     const matchingGroups = this.config.importGroups.filter(group => {
       if (group.isDefault) return false;
       if (!group.regex) return false;
@@ -384,7 +377,6 @@ class ImportParser {
       return matchingGroups[0].name;
     }
 
-    // Grouper d'abord par priorité
     const groupsByPriority = new Map<number | undefined, typeof matchingGroups>();
     matchingGroups.forEach(group => {
       const priority = group.priority;
@@ -394,7 +386,6 @@ class ImportParser {
       groupsByPriority.get(priority)!.push(group);
     });
 
-    // Traiter d'abord les groupes avec priorité
     const priorityGroups = Array.from(groupsByPriority.entries())
       .filter(([priority]) => priority !== undefined)
       .sort(([a], [b]) => (b as number) - (a as number));
@@ -403,17 +394,14 @@ class ImportParser {
       const [, highestPriorityGroups] = priorityGroups[0];
 
       if (highestPriorityGroups.length > 1) {
-        // Pour la même priorité, utiliser la spécificité de la regex
         return highestPriorityGroups.sort((a, b) => {
-          // Comparer la longueur des patterns pour une estimation de la spécificité
           const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
           const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
 
           if (aPattern.length !== bPattern.length) {
-            return bPattern.length - aPattern.length; // Plus long = plus spécifique
+            return bPattern.length - aPattern.length;
           }
 
-          // Si même spécificité, utiliser l'ordre puis le nom
           if (a.order !== b.order) {
             return a.order - b.order;
           }
@@ -425,12 +413,10 @@ class ImportParser {
       return highestPriorityGroups[0].name;
     }
 
-    // Pour les groupes sans priorité
     return matchingGroups.sort((a, b) => {
       if (a.isDefault && !b.isDefault) return 1;
       if (!a.isDefault && b.isDefault) return -1;
 
-      // Comparer la spécificité des regex
       const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
       const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
 
