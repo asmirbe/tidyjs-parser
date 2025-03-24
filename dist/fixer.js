@@ -16,30 +16,29 @@ function fixDuplicateSpecifiers(importStmt) {
         if (!importParts) {
             return importStmt;
         }
-        const [prefix, specifiersBlock, suffix] = importParts;
+        const [, prefix, specifiersBlock, suffix] = importParts;
         const specifiersContent = specifiersBlock.substring(1, specifiersBlock.length - 1);
+        // Utiliser une regex pour splitter plus précisément les spécificateurs
         const rawSpecifiers = specifiersContent
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean);
-        const uniqueSpecifiers = new Map();
+            .split(/\s*,\s*/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+        // Utiliser un Set pour gérer automatiquement les doublons
+        const uniqueSpecs = new Set();
         for (const spec of rawSpecifiers) {
             const isType = spec.startsWith("type ");
             const specWithoutType = isType ? spec.substring(5).trim() : spec;
-            let key;
-            const fullSpec = spec;
+            let normalizedSpec;
             if (specWithoutType.includes(" as ")) {
-                const [name] = specWithoutType.split(" as ");
-                key = (isType ? "type " : "") + name.trim();
+                const [name, alias] = specWithoutType.split(" as ").map(s => s.trim());
+                normalizedSpec = isType ? `type ${name} as ${alias}` : `${name} as ${alias}`;
             }
             else {
-                key = spec;
+                normalizedSpec = isType ? `type ${specWithoutType}` : specWithoutType;
             }
-            if (!uniqueSpecifiers.has(key)) {
-                uniqueSpecifiers.set(key, fullSpec);
-            }
+            uniqueSpecs.add(normalizedSpec);
         }
-        const correctedSpecifiers = Array.from(uniqueSpecifiers.values()).join(", ");
+        const correctedSpecifiers = Array.from(uniqueSpecs).join(", ");
         const correctedImport = `${prefix}{${correctedSpecifiers}}${suffix}`;
         return correctedImport;
     }
@@ -69,12 +68,26 @@ function fixImportStatement(importStmt) {
         if (hasDefaultAlias) {
             cleanedImport = normalizeDefaultImportAlias(cleanedImport);
         }
-        const hasDuplicates = detectDuplicateSpecifiers(cleanedImport);
-        if (hasDuplicates) {
+        const duplicates = detectDuplicateSpecifiers(cleanedImport);
+        if (duplicates) {
             const fixedImport = fixDuplicateSpecifiers(cleanedImport);
-            if (fixedImport) {
-                cleanedImport = fixedImport;
+            if (!fixedImport) {
+                return {
+                    fixed: null,
+                    isValid: false,
+                    errors: [`Failed to fix duplicate specifiers: ${duplicates.join(', ')}`]
+                };
             }
+            // Verify that duplicates were actually removed
+            const remainingDuplicates = detectDuplicateSpecifiers(fixedImport);
+            if (remainingDuplicates) {
+                return {
+                    fixed: null,
+                    isValid: false,
+                    errors: [`Failed to remove duplicate specifiers: ${remainingDuplicates.join(', ')}`]
+                };
+            }
+            cleanedImport = fixedImport;
         }
         const ast = (0, parser_1.parse)(cleanedImport, {
             sourceType: "module",
@@ -168,12 +181,12 @@ function detectDuplicateSpecifiers(importStmt) {
     }
     const specifiersContent = match[1];
     const specifiers = specifiersContent
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((s) => {
+        .split(/\s*,\s*/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+        .map(s => {
         const withoutType = s.replace(/^type\s+/, "");
-        return withoutType.split(" as ")[0].trim();
+        return withoutType.split(/\s+as\s+/)[0].trim();
     });
     const seen = new Set();
     const duplicates = new Set();

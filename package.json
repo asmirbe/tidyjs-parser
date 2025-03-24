@@ -10,13 +10,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "npm run check-types && npm run lint && tsc",
-    "check-types": "tsc --noEmit --project tsconfig.json",
     "dev": "ts-node src/index.ts",
+    "build": "npm run check-types && npm run lint && tsc",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "test": "ts-node test/runTest.ts",
-    "unit:test": "npx jest test/unit --verbose"
+    "check-types": "tsc --noEmit --project tsconfig.json",
+    "test": "jest --verbose",
+    "test:unit": "jest test/unit --verbose",
+    "test:func": "jest test/functionnal --verbose"
   },
   "keywords": [
     "typescript",
