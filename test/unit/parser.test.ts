@@ -93,7 +93,6 @@ describe("ImportParser - Priorité des groupes", () => {
 
             const defaultGroup = result.groups.find(g => g.name === "Modules Internes");
             expect(defaultGroup).toBeDefined();
-            console.log('Default group imports:', defaultGroup!.imports);
             expect(defaultGroup!.imports.map(i => i.source)).toEqual(['@internal/data', './utils']);
         });
 

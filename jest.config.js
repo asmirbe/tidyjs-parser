@@ -4,6 +4,6 @@ module.exports = {
     testEnvironment: 'node',
     testMatch: [
         "**/test/unit/**/*.ts",
-        "**/test/fixtures/**/*.test.ts"
+        "**/test/func/**/*.test.ts"
     ],
 };
