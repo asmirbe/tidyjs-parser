@@ -31,34 +31,32 @@ describe("ImportParser", () => {
             ]);
         });
 
-        // Note: Ces limitations devraient être corrigées dans une future version
-        describe("Limitations actuelles", () => {
-            it("ne prend pas en compte les imports avec commentaires /* */ sur la même ligne", () => {
-                const config: ParserConfig = {
-                    importGroups: [
-                        {
-                            name: "Default",
-                            order: 1,
-                            isDefault: true
-                        }
-                    ]
-                };
+        it("ne devrait pas ignorer les imports avec commentaires /* */ sur la même ligne", () => {
+            const config: ParserConfig = {
+                importGroups: [
+                    {
+                        name: "Default",
+                        order: 1,
+                        isDefault: true
+                    }
+                ]
+            };
 
-                const parser = new ImportParser(config);
-                const result = parser.parse(`
-                    import { FormatterConfig } from './types';
-                    /* Commentaire en ligne */ import { ParsedImport } from 'tidyjs-parser';
-                    import { logDebug } from './utils/log';
-                `);
+            const parser = new ImportParser(config);
+            const result = parser.parse(`
+                import { FormatterConfig } from './types';
+                /* Commentaire en ligne */ import { ParsedImport } from 'tidyjs-parser';
+                import { logDebug } from './utils/log';
+            `);
 
-                expect(result.groups.length).toBe(1);
-                const defaultGroup = result.groups[0];
-                // Note: l'import de tidyjs-parser n'est pas détecté à cause du commentaire
-                expect(defaultGroup.imports.map(i => i.source)).toEqual([
-                    './types',
-                    './utils/log'
-                ]);
-            });
+            expect(result.groups.length).toBe(1);
+            const defaultGroup = result.groups[0];
+            console.log('🚀 ~ parser.test.ts:54 ~ it ~ defaultGroup:', defaultGroup);
+            expect(new Set(defaultGroup.imports.map(i => i.source))).toEqual(new Set([
+                './types',
+                'tidyjs-parser',
+                './utils/log'
+            ]));
         });
     });
 

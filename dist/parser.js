@@ -64,7 +64,7 @@ class ImportParser {
         this.patterns = this.config.patterns;
     }
     parse(sourceCode) {
-        const importRegex = /(?:^|\n)\s*import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/g;
+        const importRegex = /(?:^|\n)\s*(?:\/\*.*?\*\/\s*)?import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/g;
         const originalImports = [];
         const invalidImports = [];
         const potentialImportLines = [];
@@ -362,7 +362,10 @@ class ImportParser {
             if (line.trim().startsWith("//")) {
                 continue;
             }
-            const cleanedLine = line.replace(/\/\/.*$/, "").trim();
+            // Supprimer les commentaires /* */ en ligne
+            let cleanedLine = line.replace(/\/\*.*?\*\//g, "").trim();
+            // Supprimer les commentaires // en ligne
+            cleanedLine = cleanedLine.replace(/\/\/.*$/, "").trim();
             if (cleanedLine) {
                 cleanedLines.push(cleanedLine);
             }
