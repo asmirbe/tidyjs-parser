@@ -329,10 +329,8 @@ class ImportParser {
         const regexStr = currentGroup.regex.toString();
         if (!regexStr.includes('(') || !regexStr.includes('|'))
             return false;
-        const patterns = this.extractPatternsFromRegex(regexStr);
-        if (patterns.length === 0)
-            return false;
-        return new RegExp(patterns[0]).test(source);
+        // Utiliser findMatchIndexInRegex pour déterminer si la source correspond au premier pattern
+        return this.findMatchIndexInRegex(source, currentGroup.regex) === 0;
     }
     determineGroupName(source) {
         const defaultGroup = this.config.importGroups.find((group) => group.isDefault);

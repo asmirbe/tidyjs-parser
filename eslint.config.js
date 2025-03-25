@@ -16,7 +16,7 @@ module.exports = [
     },
     eslintJs.configs.recommended,
     {
-        files: ['**/*.ts'],
+        files: ['*/**/*.ts'],
         languageOptions: {
             parser: tsParser,
             globals: {
