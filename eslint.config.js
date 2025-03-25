@@ -37,8 +37,6 @@ module.exports = [
             '@typescript-eslint/explicit-function-return-type': 'off',
             '@typescript-eslint/explicit-module-boundary-types': 'off',
             '@typescript-eslint/no-explicit-any': 'warn',
-            // '@typescript-eslint/no-non-null-assertion': 'warn',
-
             'quotes': ['error', 'single', { avoidEscape: true }],
             'semi': ['error', 'always'],
             'indent': ['error', 2],

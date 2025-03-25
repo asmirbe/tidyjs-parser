@@ -3,7 +3,7 @@ import { ImportParser } from "../../src/parser";
 import { ParserConfig } from "../../src/types";
 
 describe("ImportParser", () => {
-    describe("Gestion des commentaires", () => {
+    describe("Comments management", () => {
         const baseConfig: ParserConfig = {
             importGroups: [
                 {
@@ -14,8 +14,8 @@ describe("ImportParser", () => {
             ]
         };
 
-        describe("Commentaires sur une ligne (//)", () => {
-            it("devrait ignorer les imports dans les commentaires //", () => {
+        describe("Single-line comments (//)", () => {
+            it("should ignore imports in // comments", () => {
                 const parser = new ImportParser(baseConfig);
                 const result = parser.parse(`
                     import { Component } from '@angular/core';
@@ -28,15 +28,15 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports.map(i => i.source)).toEqual([
                     '@angular/core'
                 ]);
-                // Le parser fusionne les imports avec la même source
+                // The parser merges imports with the same source
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
                 expect(defaultGroup.imports[0].raw.trim()).toContain("NgModule");
             });
 
-            it("devrait détecter les imports après les commentaires //", () => {
+            it("should detect imports after // comments", () => {
                 const parser = new ImportParser(baseConfig);
                 const result = parser.parse(`
-                    // Un commentaire quelconque
+                    // A random comment
                     import { Component } from '@angular/core';
                 `);
 
@@ -45,8 +45,8 @@ describe("ImportParser", () => {
             });
         });
 
-        describe("Commentaires multi-lignes (/* */)", () => {
-            it("devrait ignorer les imports dans les commentaires /* */", () => {
+        describe("Multi-line comments (/* */)", () => {
+            it("should ignore imports in /* */ comments", () => {
                 const parser = new ImportParser(baseConfig);
                 const result = parser.parse(`
                     import { Component } from '@angular/core';
@@ -62,15 +62,15 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports.map(i => i.source)).toEqual([
                     '@angular/core'
                 ]);
-                // Le parser fusionne les imports avec la même source
+                // The parser merges imports with the same source
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
             });
 
-            it("devrait détecter les imports avant les commentaires /* */", () => {
+            it("should detect imports before /* */ comments", () => {
                 const parser = new ImportParser(baseConfig);
                 const result = parser.parse(`
-                    import { Component } from '@angular/core'; /* Un commentaire */
+                    import { Component } from '@angular/core'; /* A comment */
                     import { Platform } from '@angular/core';
                 `);
 
@@ -79,15 +79,15 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports.map(i => i.source)).toEqual([
                     '@angular/core'
                 ]);
-                // Le parser fusionne les imports avec la même source
+                // The parser merges imports with the same source
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
             });
 
-            it("devrait détecter les imports après les commentaires /* */", () => {
+            it("should detect imports after /* */ comments", () => {
                 const parser = new ImportParser(baseConfig);
                 const result = parser.parse(`
-                    /* Un commentaire */ import { Component } from '@angular/core';
+                    /* A comment */ import { Component } from '@angular/core';
                     import { Platform } from '@angular/core';
                 `);
 
@@ -96,12 +96,12 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports.map(i => i.source)).toEqual([
                     '@angular/core'
                 ]);
-                // Le parser fusionne les imports avec la même source
+                // The parser merges imports with the same source
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
             });
 
-            it("devrait ignorer les imports partiellement commentés", () => {
+            it("should ignore partially commented imports", () => {
                 const parser = new ImportParser(baseConfig);
                 const result = parser.parse(`
                     import { Component } from '@angular/core';
@@ -113,16 +113,16 @@ describe("ImportParser", () => {
                 expect(result.groups[0].imports.map(i => i.source)).toEqual([
                     '@angular/core'
                 ]);
-                // Le parser fusionne les imports avec la même source
+                // The parser merges imports with the same source
                 expect(result.groups[0].imports[0].raw.trim()).toContain("Component");
                 expect(result.groups[0].imports[0].raw.trim()).toContain("Platform");
             });
         });
     });
 
-    describe("Priorité des groupes", () => {
-        describe("Priorité basée sur l'ordre des patterns dans les regex", () => {
-            it("devrait prioriser les imports selon leur ordre dans le pattern regex", () => {
+    describe("Group priorities", () => {
+        describe("Priority based on pattern order in regex", () => {
+            it("should prioritize imports according to their order in the regex pattern", () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -131,7 +131,7 @@ describe("ImportParser", () => {
                             order: 1
                         },
                         {
-                            name: "Autres",
+                            name: "Others",
                             order: 2,
                             isDefault: true
                         }
@@ -147,11 +147,11 @@ describe("ImportParser", () => {
 
                 const reactGroup = result.groups.find(g => g.name === "React");
                 expect(reactGroup).toBeDefined();
-                // Les imports devraient être triés selon l'ordre dans le regex
+                // Imports should be sorted according to the order in the regex
                 expect(reactGroup!.imports.map(i => i.source)).toEqual(['react', 'react-dom', 'react-router']);
             });
 
-            it("devrait prioriser les imports de components selon leur hiérarchie", () => {
+            it("should prioritize component imports according to their hierarchy", () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -160,7 +160,7 @@ describe("ImportParser", () => {
                             order: 1
                         },
                         {
-                            name: "Autres",
+                            name: "Others",
                             order: 2,
                             isDefault: true
                         }
@@ -184,8 +184,8 @@ describe("ImportParser", () => {
             });
         });
 
-        describe("Gestion des groupes par défaut", () => {
-            it("devrait utiliser le groupe marqué comme isDefault", () => {
+        describe("Default group management", () => {
+            it("should use the group marked as isDefault", () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -194,7 +194,7 @@ describe("ImportParser", () => {
                             order: 1
                         },
                         {
-                            name: "Modules Internes",
+                            name: "Internal Modules",
                             order: 2,
                             isDefault: true
                         }
@@ -208,12 +208,12 @@ describe("ImportParser", () => {
                     import Data from '@internal/data';
                 `);
 
-                const defaultGroup = result.groups.find(g => g.name === "Modules Internes");
+                const defaultGroup = result.groups.find(g => g.name === "Internal Modules");
                 expect(defaultGroup).toBeDefined();
                 expect(defaultGroup!.imports.map(i => i.source)).toEqual(['@internal/data', './utils']);
             });
 
-            it("devrait utiliser 'Misc' comme nom de groupe par défaut si aucun groupe n'est marqué comme isDefault", () => {
+            it("should use 'Misc' as the default group name if no group is marked as isDefault", () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -236,7 +236,7 @@ describe("ImportParser", () => {
             });
         });
 
-        it("devrait choisir le groupe avec la priorité la plus élevée quand plusieurs groupes correspondent", () => {
+        it("should choose the group with the highest priority when multiple groups match", () => {
             const config: ParserConfig = {
                 importGroups: [
                     {
@@ -278,7 +278,7 @@ describe("ImportParser", () => {
             expect(othersGroup!.imports.map(i => i.source)).toEqual(['@user/data']);
         });
 
-        it("devrait utiliser la spécificité des regex quand les priorités sont égales", () => {
+        it("should use regex specificity when priorities are equal", () => {
             const config: ParserConfig = {
                 importGroups: [
                     {
@@ -323,7 +323,7 @@ describe("ImportParser", () => {
             expect(othersGroup!.imports.map(i => i.source)).toEqual(['@user/data']);
         });
 
-        it("devrait utiliser l'ordre quand les priorités ne sont pas définies", () => {
+        it("should use order when priorities are not defined", () => {
             const config: ParserConfig = {
                 importGroups: [
                     {
