@@ -8,6 +8,7 @@ declare class ImportParser {
     private extractPatternsFromRegex;
     private findMatchIndexInRegex;
     constructor(config: ParserConfig);
+    private removeComments;
     parse(sourceCode: string): {
         groups: ImportGroup[];
         originalImports: string[];

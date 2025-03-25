@@ -4,59 +4,119 @@ import { ParserConfig } from "../../src/types";
 
 describe("ImportParser", () => {
     describe("Gestion des commentaires", () => {
-        it("devrait ignorer les commentaires de type // avant les imports", () => {
-            const config: ParserConfig = {
-                importGroups: [
-                    {
-                        name: "Default",
-                        order: 1,
-                        isDefault: true
-                    }
-                ]
-            };
+        const baseConfig: ParserConfig = {
+            importGroups: [
+                {
+                    name: "Default",
+                    order: 1,
+                    isDefault: true
+                }
+            ]
+        };
 
-            const parser = new ImportParser(config);
-            const result = parser.parse(`
-                // Misc
-                import { FormatterConfig } from './types';
-                // Utils
-                import { logDebug } from './utils/log';
-            `);
+        describe("Commentaires sur une ligne (//)", () => {
+            it("devrait ignorer les imports dans les commentaires //", () => {
+                const parser = new ImportParser(baseConfig);
+                const result = parser.parse(`
+                    import { Component } from '@angular/core';
+                    // import { Injectable } from '@angular/core';
+                    import { NgModule } from '@angular/core';
+                `);
 
-            expect(result.groups.length).toBe(1);
-            const defaultGroup = result.groups[0];
-            expect(defaultGroup.imports.map(i => i.source)).toEqual([
-                './types',
-                './utils/log'
-            ]);
+                expect(result.groups.length).toBe(1);
+                const defaultGroup = result.groups[0];
+                expect(defaultGroup.imports.map(i => i.source)).toEqual([
+                    '@angular/core'
+                ]);
+                // Le parser fusionne les imports avec la même source
+                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].raw.trim()).toContain("NgModule");
+            });
+
+            it("devrait détecter les imports après les commentaires //", () => {
+                const parser = new ImportParser(baseConfig);
+                const result = parser.parse(`
+                    // Un commentaire quelconque
+                    import { Component } from '@angular/core';
+                `);
+
+                expect(result.groups.length).toBe(1);
+                expect(result.groups[0].imports.map(i => i.source)).toEqual(['@angular/core']);
+            });
         });
 
-        it("ne devrait pas ignorer les imports avec commentaires /* */ sur la même ligne", () => {
-            const config: ParserConfig = {
-                importGroups: [
-                    {
-                        name: "Default",
-                        order: 1,
-                        isDefault: true
-                    }
-                ]
-            };
+        describe("Commentaires multi-lignes (/* */)", () => {
+            it("devrait ignorer les imports dans les commentaires /* */", () => {
+                const parser = new ImportParser(baseConfig);
+                const result = parser.parse(`
+                    import { Component } from '@angular/core';
+                    /* 
+                    import { Injectable } from '@angular/core';
+                    import { NgModule } from '@angular/core';
+                    */
+                   import { Platform } from '@angular/core';
+                   `);
 
-            const parser = new ImportParser(config);
-            const result = parser.parse(`
-                import { FormatterConfig } from './types';
-                /* Commentaire en ligne */ import { ParsedImport } from 'tidyjs-parser';
-                import { logDebug } from './utils/log';
-            `);
+                expect(result.groups.length).toBe(1);
+                const defaultGroup = result.groups[0];
+                expect(defaultGroup.imports.map(i => i.source)).toEqual([
+                    '@angular/core'
+                ]);
+                // Le parser fusionne les imports avec la même source
+                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
+            });
 
-            expect(result.groups.length).toBe(1);
-            const defaultGroup = result.groups[0];
-            console.log('🚀 ~ parser.test.ts:54 ~ it ~ defaultGroup:', defaultGroup);
-            expect(new Set(defaultGroup.imports.map(i => i.source))).toEqual(new Set([
-                './types',
-                'tidyjs-parser',
-                './utils/log'
-            ]));
+            it("devrait détecter les imports avant les commentaires /* */", () => {
+                const parser = new ImportParser(baseConfig);
+                const result = parser.parse(`
+                    import { Component } from '@angular/core'; /* Un commentaire */
+                    import { Platform } from '@angular/core';
+                `);
+
+                expect(result.groups.length).toBe(1);
+                const defaultGroup = result.groups[0];
+                expect(defaultGroup.imports.map(i => i.source)).toEqual([
+                    '@angular/core'
+                ]);
+                // Le parser fusionne les imports avec la même source
+                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
+            });
+
+            it("devrait détecter les imports après les commentaires /* */", () => {
+                const parser = new ImportParser(baseConfig);
+                const result = parser.parse(`
+                    /* Un commentaire */ import { Component } from '@angular/core';
+                    import { Platform } from '@angular/core';
+                `);
+
+                expect(result.groups.length).toBe(1);
+                const defaultGroup = result.groups[0];
+                expect(defaultGroup.imports.map(i => i.source)).toEqual([
+                    '@angular/core'
+                ]);
+                // Le parser fusionne les imports avec la même source
+                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
+            });
+
+            it("devrait ignorer les imports partiellement commentés", () => {
+                const parser = new ImportParser(baseConfig);
+                const result = parser.parse(`
+                    import { Component } from '@angular/core';
+                    /* import { Injectable */ from '@angular/core';
+                    import { Platform } from '@angular/core';
+                `);
+
+                expect(result.groups.length).toBe(1);
+                expect(result.groups[0].imports.map(i => i.source)).toEqual([
+                    '@angular/core'
+                ]);
+                // Le parser fusionne les imports avec la même source
+                expect(result.groups[0].imports[0].raw.trim()).toContain("Component");
+                expect(result.groups[0].imports[0].raw.trim()).toContain("Platform");
+            });
         });
     });
 

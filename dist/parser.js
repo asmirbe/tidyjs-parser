@@ -63,39 +63,78 @@ class ImportParser {
         this.typeOrder = this.config.typeOrder;
         this.patterns = this.config.patterns;
     }
+    removeComments(code) {
+        let result = "";
+        let inMultiLineComment = false;
+        let i = 0;
+        while (i < code.length) {
+            // Si on est dans un commentaire multi-lignes
+            if (inMultiLineComment) {
+                if (code[i] === '*' && code[i + 1] === '/') {
+                    inMultiLineComment = false;
+                    // Remplacer le commentaire par des espaces mais garder les retours à la ligne
+                    result += "  ";
+                    i += 2;
+                    continue;
+                }
+                // Préserver les retours à la ligne
+                if (code[i] === '\n') {
+                    result += '\n';
+                }
+                else {
+                    result += ' ';
+                }
+                i++;
+                continue;
+            }
+            // Détecter le début d'un commentaire multi-lignes
+            if (code[i] === '/' && code[i + 1] === '*') {
+                inMultiLineComment = true;
+                i += 2;
+                continue;
+            }
+            // Détecter un commentaire sur une ligne
+            if (code[i] === '/' && code[i + 1] === '/') {
+                // Aller jusqu'à la fin de la ligne
+                while (i < code.length && code[i] !== '\n') {
+                    result += ' '; // Remplacer par des espaces
+                    i++;
+                }
+                continue;
+            }
+            result += code[i];
+            i++;
+        }
+        return result;
+    }
     parse(sourceCode) {
-        const importRegex = /(?:^|\n)\s*(?:\/\*.*?\*\/\s*)?import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/g;
+        // Nettoyer d'abord le code des commentaires
+        const cleanedCode = this.removeComments(sourceCode);
+        const importRegex = /(?:^|\n)\s*import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/g;
         const originalImports = [];
         const invalidImports = [];
         const potentialImportLines = [];
         let match;
-        while ((match = importRegex.exec(sourceCode)) !== null) {
-            let importStmt = match[0].trim();
-            if (!importStmt) {
+        while ((match = importRegex.exec(cleanedCode)) !== null) {
+            let importStmt = cleanedCode.substring(match.index, match.index + match[0].length).trim();
+            // Si la ligne ne commence pas par "import" après nettoyage des commentaires, ce n'est pas un import valide
+            if (!importStmt || !importStmt.trim().startsWith("import")) {
                 continue;
             }
-            if (!importStmt.startsWith("import")) {
-                const importIndex = match[0].indexOf("import");
-                if (importIndex >= 0) {
-                    importStmt = match[0].substring(importIndex).trim();
-                }
-                else {
-                    continue;
-                }
-            }
+            // Vérifier si l'import est complet (avec point-virgule)
             if (!importStmt.includes(";")) {
                 let searchEnd = match.index + match[0].length;
                 let nextLine = "";
                 do {
                     const nextLineStart = searchEnd + 1;
-                    searchEnd = sourceCode.indexOf("\n", nextLineStart);
+                    searchEnd = cleanedCode.indexOf("\n", nextLineStart);
                     if (searchEnd === -1)
-                        searchEnd = sourceCode.length;
-                    nextLine = sourceCode.substring(nextLineStart, searchEnd).trim();
-                    if (nextLine && !nextLine.startsWith("import") && !nextLine.startsWith("//")) {
+                        searchEnd = cleanedCode.length;
+                    nextLine = cleanedCode.substring(nextLineStart, searchEnd).trim();
+                    if (nextLine && !nextLine.startsWith("import")) {
                         importStmt += "\n" + nextLine;
                     }
-                } while (!importStmt.includes(";") && nextLine && !nextLine.startsWith("import") && searchEnd < sourceCode.length);
+                } while (!importStmt.includes(";") && nextLine && !nextLine.startsWith("import") && searchEnd < cleanedCode.length);
             }
             const trimmedImport = importStmt.trim();
             if (trimmedImport) {
