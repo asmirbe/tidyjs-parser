@@ -60,4 +60,32 @@ import { Button }  from 'antd';
         expect(miscImports).toContain("import 'style.css';");
         expect(miscImports).toContain("import { Button } from 'antd';");
     });
+
+    it('should correctly parse multi-line imports', () => {
+        const config: ParserConfig = {
+            importGroups: [
+                {
+                    name: "Miscellaneous",
+                    isDefault: true,
+                    order: 0,
+                }
+            ]
+        };
+
+        const parser = new ImportParser(config);
+        const result = parser.parse(`
+import { test } from 
+'../path/to/module';
+
+import { another } from 
+    '../another/path';
+`);
+        const miscGroup = result.groups.find(g => g.name === "Miscellaneous");
+        expect(miscGroup).toBeDefined();
+        expect(miscGroup?.imports.length).toBe(2);
+
+        const imports = miscGroup?.imports.map(imp => imp.raw);
+        expect(imports).toContain("import { test } from '../path/to/module';");
+        expect(imports).toContain("import { another } from '../another/path';");
+    });
 });
