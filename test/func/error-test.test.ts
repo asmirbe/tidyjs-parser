@@ -1,17 +1,6 @@
 import { describe, it, expect } from '@jest/globals';
-import { parseImports, ParserConfig, DEFAULT_CONFIG } from "../../src/index";
-
-const config: ParserConfig = {
-    importGroups: [
-        { name: "Misc", regex: /^(react|lodash|uuid)$/, order: 0, isDefault: true },
-        { name: "Composants", regex: /^@components/, order: 1 },
-        { name: "Utils", regex: /^@utils/, order: 2 },
-    ],
-    patterns: {
-        ...DEFAULT_CONFIG.patterns,
-        subfolderPattern: /@app\/([^/]+)/,
-    },
-};
+import { parseImports } from "../../src/index";
+import { config } from "./basic.test";
 
 describe('Import Parser - Error Cases', () => {
     describe('Invalid Syntax Cases', () => {

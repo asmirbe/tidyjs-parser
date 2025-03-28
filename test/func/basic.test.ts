@@ -1,10 +1,10 @@
 import { describe, it, expect } from '@jest/globals';
 import { parseImports, ParserConfig, DEFAULT_CONFIG } from "../../src/index";
 
-const config: ParserConfig = {
+export const config: ParserConfig = {
     importGroups: [
-        { name: "Misc", regex: /^(react|lodash|uuid)$/, order: 0, isDefault: true },
-        { name: "Composants", regex: /^@components/, order: 1 },
+        { name: "Misc", regex: /^(fs|path|uuid|lodash|react)$/, order: 0, isDefault: true },
+        { name: "Components", regex: /^@components/, order: 1 },
         { name: "Utils", regex: /^@utils/, order: 2 },
     ],
     patterns: {
@@ -14,8 +14,48 @@ const config: ParserConfig = {
 };
 
 describe('Import Parser - General Cases', () => {
-    describe('Group Priorité', () => {
-        it('devrait prioriser les imports selon leur ordre dans le pattern regex', () => {
+    it('should handle imports with comments correctly', () => {
+        const code = `
+            // React Import
+            import { useState } from 'react'; // State hook
+            /* Component import */
+            import { Button } from '@components/Button';
+        `;
+
+        const result = parseImports(code, config);
+
+        const miscGroup = result.groups.find(g => g.name === 'Misc');
+        const componentsGroup = result.groups.find(g => g.name === 'Components');
+
+        expect(miscGroup).toBeDefined();
+        expect(componentsGroup).toBeDefined();
+        expect(miscGroup?.imports[0].specifiers).toContain('useState');
+        expect(componentsGroup?.imports[0].specifiers).toContain('Button');
+        expect(result.groups.length).toBe(2);
+    });
+
+    it('should group imports correctly according to configuration', () => {
+        const code = `
+            import fs from 'fs';
+            import path from 'path';
+            import { useEffect } from 'react';
+            import { Header } from '@components/Header';
+            import { Footer } from '@components/Footer';
+        `;
+
+        const result = parseImports(code, config);
+        const groups = result.groups;
+
+        expect(groups).toHaveLength(2);
+        expect(groups[0].name).toBe('Misc');
+        expect(groups[1].name).toBe('Components');
+
+        expect(groups[0].imports.map(i => i.source)).toEqual(['fs', 'path', 'react']);
+        expect(groups[1].imports.map(i => i.source)).toEqual(['@components/Header', '@components/Footer'].sort());
+    });
+
+    describe('Group Priority', () => {
+        it('should prioritize imports according to their regex pattern order', () => {
             const code = `
                 import { useState } from 'react';
                 import { Button } from '@components/Button';
@@ -27,15 +67,15 @@ describe('Import Parser - General Cases', () => {
 
             expect(groups).toHaveLength(3);
             expect(groups[0].name).toBe('Misc');
-            expect(groups[1].name).toBe('Composants');
+            expect(groups[1].name).toBe('Components');
             expect(groups[2].name).toBe('Utils');
         });
 
-        it('devrait gérer correctement les imports avec commentaires', () => {
+        it('should handle imports with comments correctly', () => {
             const code = `
-                // Import React
-                import { useState } from 'react'; // Hook d'état
-                /* Import de composant */
+                // React Import
+                import { useState } from 'react'; // State hook
+                /* Component import */
                 import { Button } from '@components/Button';
             `;
 
@@ -46,14 +86,14 @@ describe('Import Parser - General Cases', () => {
     });
 
     describe('Alias Imports', () => {
-        it('devrait gérer les imports avec alias', () => {
+        it('should handle imports with aliases', () => {
             const code = `
                 import { Button as CustomButton } from '@components/Button';
                 import { useState as useLocalState } from 'react';
             `;
 
             const result = parseImports(code, config);
-            const componentsGroup = result.groups.find(g => g.name === 'Composants');
+            const componentsGroup = result.groups.find(g => g.name === 'Components');
             const miscGroup = result.groups.find(g => g.name === 'Misc');
 
             expect(componentsGroup).toBeDefined();
@@ -64,7 +104,7 @@ describe('Import Parser - General Cases', () => {
     });
 
     describe('Multi-line Imports', () => {
-        it('devrait parser correctement les imports multi-lignes', () => {
+        it('should parse multi-line imports correctly', () => {
             const code = `
                 import {
                     useState,
@@ -84,7 +124,7 @@ describe('Import Parser - General Cases', () => {
     });
 
     describe('Default and Named Imports', () => {
-        it('devrait gérer les imports par défaut et nommés', () => {
+        it('should handle default and named imports', () => {
             const code = `
                 import React, { useState } from 'react';
                 import Button, { ButtonProps } from '@components/Button';
@@ -93,9 +133,9 @@ describe('Import Parser - General Cases', () => {
             const result = parseImports(code, config);
 
             const miscGroup = result.groups.find(g => g.name === 'Misc');
-            const componentsGroup = result.groups.find(g => g.name === 'Composants');
+            const componentsGroup = result.groups.find(g => g.name === 'Components');
 
-            // Vérifier que les imports par défaut et nommés sont maintenant séparés
+            // Check that default and named imports are now separated
             const reactDefaultImport = miscGroup?.imports.find(imp =>
                 imp.type === 'default' && imp.source === 'react');
             const reactNamedImport = miscGroup?.imports.find(imp =>
@@ -106,13 +146,13 @@ describe('Import Parser - General Cases', () => {
             const buttonNamedImport = componentsGroup?.imports.find(imp =>
                 imp.type === 'named' && imp.source === '@components/Button');
 
-            // Vérifier la présence des imports par défaut
+            // Check presence of default imports
             expect(reactDefaultImport).toBeDefined();
             expect(reactDefaultImport?.specifiers).toContain('React');
             expect(buttonDefaultImport).toBeDefined();
             expect(buttonDefaultImport?.specifiers).toContain('Button');
 
-            // Vérifier la présence des imports nommés
+            // Check presence of named imports
             expect(reactNamedImport).toBeDefined();
             expect(reactNamedImport?.specifiers).toContain('useState');
             expect(buttonNamedImport).toBeDefined();
@@ -121,22 +161,22 @@ describe('Import Parser - General Cases', () => {
     });
 
     describe('Namespace Imports', () => {
-        it('devrait gérer les imports namespace', () => {
+        it('should handle namespace imports', () => {
             const code = `import * as ReactDom from 'react';`;
             const result = parseImports(code, config);
             const miscGroup = result.groups.find(g => g.name === 'Misc');
 
-            // Vérifier que l'import namespace est correctement regroupé
+            // Check that namespace import is correctly grouped
             expect(miscGroup).toBeDefined();
             expect(miscGroup?.imports).toHaveLength(1);
-            // Type est 'default' car un import namespace est traité comme un import par défaut
+            // Type is 'default' because a namespace import is treated as a default import
             expect(miscGroup?.imports[0].type).toBe('default');
             expect(miscGroup?.imports[0].specifiers).toEqual(['ReactDom']);
         });
     });
 
     describe('Import Sorting', () => {
-        it('devrait trier les imports selon leur ordre de groupe', () => {
+        it('should sort imports according to group order', () => {
             const code = `
                 import { formatDate } from '@utils/date';
                 import { useState } from 'react';
@@ -147,11 +187,11 @@ describe('Import Parser - General Cases', () => {
             const groups = result.groups;
 
             expect(groups[0].name).toBe('Misc');
-            expect(groups[1].name).toBe('Composants');
+            expect(groups[1].name).toBe('Components');
             expect(groups[2].name).toBe('Utils');
         });
 
-        it('devrait trier les imports alphabétiquement dans chaque groupe', () => {
+        it('should sort imports alphabetically within each group', () => {
             const code = `
                 import { useEffect, useState, useCallback } from 'react';
                 import { Card, Button, Alert } from '@components/ui';
@@ -160,10 +200,47 @@ describe('Import Parser - General Cases', () => {
             const result = parseImports(code, config);
 
             const miscGroup = result.groups.find(g => g.name === 'Misc');
-            const componentsGroup = result.groups.find(g => g.name === 'Composants');
+            const componentsGroup = result.groups.find(g => g.name === 'Components');
 
             expect(miscGroup?.imports[0].specifiers).toEqual(['useCallback', 'useEffect', 'useState']);
             expect(componentsGroup?.imports[0].specifiers).toEqual(['Alert', 'Button', 'Card']);
+        });
+    });
+
+    describe('Edge Cases', () => {
+        it('should handle imports without specifiers', () => {
+            const code = `import 'styles/global.css';`;
+            const result = parseImports(code, config);
+
+            expect(result.groups.length).toBeGreaterThan(0);
+            expect(result.invalidImports?.length).toBe(0);
+            expect(result.groups[0].imports[0].type).toBe('sideEffect');
+            expect(result.groups[0].imports[0].specifiers).toEqual([]);
+        });
+
+        it('should handle imports with dynamic expressions', () => {
+            const code = `
+                import { useState } from 'react';
+                const moduleName = 'utils';
+                const dynamicImport = import(\`@\${moduleName}/helpers\`);
+            `;
+
+            const result = parseImports(code, config);
+            expect(result.groups.length).toBeGreaterThan(0);
+            expect(result.groups[0].name).toBe('Misc');
+        });
+
+        it('should handle consecutive imports with different types', () => {
+            const code = `
+                import Button from '@components/Button';
+                import { Card } from '@components/Card';
+                import * as Utils from '@utils/helpers';
+                import 'styles/global.css';
+            `;
+
+            const result = parseImports(code, config);
+            expect(result.groups.length).toBe(3);
+            expect(result.groups.find(g => g.name === 'Components')?.imports.length).toBe(2);
         });
     });
 });
