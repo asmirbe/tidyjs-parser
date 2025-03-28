@@ -95,11 +95,28 @@ describe('Import Parser - General Cases', () => {
             const miscGroup = result.groups.find(g => g.name === 'Misc');
             const componentsGroup = result.groups.find(g => g.name === 'Composants');
 
-            // Vérifier la présence des imports par défaut et nommés
-            expect(miscGroup?.imports[0].specifiers).toContain('React');
-            expect(miscGroup?.imports[0].specifiers).toContain('useState');
-            expect(componentsGroup?.imports[0].specifiers).toContain('Button');
-            expect(componentsGroup?.imports[0].specifiers).toContain('ButtonProps');
+            // Vérifier que les imports par défaut et nommés sont maintenant séparés
+            const reactDefaultImport = miscGroup?.imports.find(imp =>
+                imp.type === 'default' && imp.source === 'react');
+            const reactNamedImport = miscGroup?.imports.find(imp =>
+                imp.type === 'named' && imp.source === 'react');
+
+            const buttonDefaultImport = componentsGroup?.imports.find(imp =>
+                imp.type === 'default' && imp.source === '@components/Button');
+            const buttonNamedImport = componentsGroup?.imports.find(imp =>
+                imp.type === 'named' && imp.source === '@components/Button');
+
+            // Vérifier la présence des imports par défaut
+            expect(reactDefaultImport).toBeDefined();
+            expect(reactDefaultImport?.specifiers).toContain('React');
+            expect(buttonDefaultImport).toBeDefined();
+            expect(buttonDefaultImport?.specifiers).toContain('Button');
+
+            // Vérifier la présence des imports nommés
+            expect(reactNamedImport).toBeDefined();
+            expect(reactNamedImport?.specifiers).toContain('useState');
+            expect(buttonNamedImport).toBeDefined();
+            expect(buttonNamedImport?.specifiers).toContain('ButtonProps');
         });
     });
 

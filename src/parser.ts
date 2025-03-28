@@ -307,21 +307,45 @@ class ImportParser {
           if (typeSpecifiers.length > 0) {
             const result: ParsedImport[] = [];
             if (defaultSpecifier) {
-              result.push({ type: "default", source, specifiers: [defaultSpecifier], raw: importStmt, groupName, isPriority, appSubfolder });
+              result.push({ type: "default", source, specifiers: [defaultSpecifier], raw: `import ${defaultSpecifier} from '${source}';`, groupName, isPriority, appSubfolder });
             }
             if (deduplicatedRegularSpecifiers.length > 0) {
-              result.push({ type: "named", source, specifiers: deduplicatedRegularSpecifiers, raw: importStmt, groupName, isPriority, appSubfolder });
+              result.push({ type: "named", source, specifiers: deduplicatedRegularSpecifiers, raw: `import { ${deduplicatedRegularSpecifiers.join(", ")} } from '${source}';`, groupName, isPriority, appSubfolder });
             }
             const deduplicatedTypeSpecifiers = this.deduplicateSpecifiers(typeSpecifiers);
-            result.push({ type: "typeNamed", source, specifiers: deduplicatedTypeSpecifiers, raw: importStmt, groupName, isPriority, appSubfolder });
+            result.push({ type: "typeNamed", source, specifiers: deduplicatedTypeSpecifiers, raw: `import type { ${deduplicatedTypeSpecifiers.join(", ")} } from '${source}';`, groupName, isPriority, appSubfolder });
+            return result;
+          }
+
+          // Si nous avons à la fois un import par défaut et des imports nommés, créer deux objets d'import distincts
+          if (defaultSpecifier && deduplicatedRegularSpecifiers.length > 0) {
+            const result: ParsedImport[] = [];
+            result.push({
+              type: "default",
+              source,
+              specifiers: [defaultSpecifier],
+              raw: `import ${defaultSpecifier} from '${source}';`,
+              groupName,
+              isPriority,
+              appSubfolder
+            });
+            result.push({
+              type: "named",
+              source,
+              specifiers: deduplicatedRegularSpecifiers,
+              raw: `import { ${deduplicatedRegularSpecifiers.join(", ")} } from '${source}';`,
+              groupName,
+              isPriority,
+              appSubfolder
+            });
             return result;
           }
 
           specifiers = deduplicatedRegularSpecifiers;
 
-          if (defaultSpecifier) {
+          if (defaultSpecifier && deduplicatedRegularSpecifiers.length === 0) {
             type = "default";
-            specifiers.unshift(defaultSpecifier);
+            specifiers = [defaultSpecifier];
           }
         }
       } else if (importStmt.includes("* as ")) {
