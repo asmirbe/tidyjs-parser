@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImportParser = void 0;
+const parser_1 = require("@babel/parser");
 const fixer_1 = require("./fixer");
 const errors_1 = require("./errors");
 const types_1 = require("./types");
@@ -63,83 +64,30 @@ class ImportParser {
         this.typeOrder = this.config.typeOrder;
         this.patterns = this.config.patterns;
     }
-    removeComments(code) {
-        let result = "";
-        let inMultiLineComment = false;
-        let i = 0;
-        while (i < code.length) {
-            // Si on est dans un commentaire multi-lignes
-            if (inMultiLineComment) {
-                if (code[i] === '*' && code[i + 1] === '/') {
-                    inMultiLineComment = false;
-                    // Remplacer le commentaire par des espaces mais garder les retours à la ligne
-                    result += "  ";
-                    i += 2;
-                    continue;
-                }
-                // Préserver les retours à la ligne
-                if (code[i] === '\n') {
-                    result += '\n';
-                }
-                else {
-                    result += ' ';
-                }
-                i++;
-                continue;
-            }
-            // Détecter le début d'un commentaire multi-lignes
-            if (code[i] === '/' && code[i + 1] === '*') {
-                inMultiLineComment = true;
-                i += 2;
-                continue;
-            }
-            // Détecter un commentaire sur une ligne
-            if (code[i] === '/' && code[i + 1] === '/') {
-                // Aller jusqu'à la fin de la ligne
-                while (i < code.length && code[i] !== '\n') {
-                    result += ' '; // Remplacer par des espaces
-                    i++;
-                }
-                continue;
-            }
-            result += code[i];
-            i++;
-        }
-        return result;
-    }
     parse(sourceCode) {
-        // Nettoyer d'abord le code des commentaires
-        const cleanedCode = this.removeComments(sourceCode);
-        const importRegex = /(?:^|\n)\s*import\s+(?:(?:type\s+)?(?:{[^;]*}|\*\s*as\s*\w+|\w+)?(?:\s*,\s*(?:{[^;]*}|\*\s*as\s*\w+|\w+))?(?:\s*from)?\s*['"]?[^'";]+['"]?;?|['"][^'"]+['"];?)/g;
         const originalImports = [];
         const invalidImports = [];
         const potentialImportLines = [];
-        let match;
-        while ((match = importRegex.exec(cleanedCode)) !== null) {
-            let importStmt = cleanedCode.substring(match.index, match.index + match[0].length).trim();
-            // Si la ligne ne commence pas par "import" après nettoyage des commentaires, ce n'est pas un import valide
-            if (!importStmt || !importStmt.trim().startsWith("import")) {
-                continue;
-            }
-            // Vérifier si l'import est complet (avec point-virgule)
-            if (!importStmt.includes(";")) {
-                let searchEnd = match.index + match[0].length;
-                let nextLine = "";
-                do {
-                    const nextLineStart = searchEnd + 1;
-                    searchEnd = cleanedCode.indexOf("\n", nextLineStart);
-                    if (searchEnd === -1)
-                        searchEnd = cleanedCode.length;
-                    nextLine = cleanedCode.substring(nextLineStart, searchEnd).trim();
-                    if (nextLine && !nextLine.startsWith("import")) {
-                        importStmt += "\n" + nextLine;
-                    }
-                } while (!importStmt.includes(";") && nextLine && !nextLine.startsWith("import") && searchEnd < cleanedCode.length);
-            }
-            const trimmedImport = importStmt.trim();
-            if (trimmedImport) {
-                potentialImportLines.push(trimmedImport);
-            }
+        try {
+            const ast = (0, parser_1.parse)(sourceCode, {
+                sourceType: "module",
+                plugins: ["typescript"],
+                errorRecovery: true,
+            });
+            ast.program.body.forEach((node) => {
+                if (node.type === "ImportDeclaration") {
+                    const importText = sourceCode.substring(node.start || 0, node.end || 0).trim();
+                    potentialImportLines.push(importText);
+                    originalImports.push(importText);
+                }
+            });
+        }
+        catch (error) {
+            invalidImports.push({
+                raw: sourceCode,
+                error: error instanceof Error ? error.message : String(error),
+            });
+            return { groups: [], originalImports, invalidImports };
         }
         let parsedImports = [];
         for (const importStmt of potentialImportLines) {
@@ -182,11 +130,17 @@ class ImportParser {
     }
     parseImport(importStmt) {
         try {
-            const isTypeImport = importStmt.includes("import type");
-            const isSideEffect = !importStmt.includes(" from ");
-            const sourceMatch = importStmt.match(/from\s+['"]([^'"]+)['"]/);
-            const source = sourceMatch ? sourceMatch[1] : importStmt.match(/import\s+['"]([^'"]+)['"]/)?.[1] ?? "";
-            if (!source) {
+            const ast = (0, parser_1.parse)(importStmt, {
+                sourceType: "module",
+                plugins: ["typescript"],
+                errorRecovery: true,
+            });
+            const importNode = ast.program.body[0];
+            if (importNode?.type !== "ImportDeclaration") {
+                throw new errors_1.ImportParserError("Invalid import statement", importStmt);
+            }
+            const source = importNode.source.value;
+            if (!source || typeof source !== "string") {
                 throw new errors_1.ImportParserError("Impossible d'extraire la source du module d'import", importStmt);
             }
             const isPriority = this.isSourcePriority(source);
@@ -199,119 +153,128 @@ class ImportParser {
                     this.appSubfolders.add(appSubfolder);
                 }
             }
-            let type = "default";
-            let specifiers = [];
+            const isTypeImport = importNode.importKind === "type";
+            const isSideEffect = !importNode.specifiers || importNode.specifiers.length === 0;
             if (isSideEffect) {
-                type = "sideEffect";
+                return {
+                    type: "sideEffect",
+                    source,
+                    specifiers: [],
+                    raw: importStmt,
+                    groupName,
+                    isPriority,
+                    appSubfolder,
+                };
             }
-            else if (isTypeImport) {
-                if (importStmt.includes("{")) {
-                    type = "typeNamed";
-                    const namedMatch = importStmt.match(/import\s+type\s+{([^}]+)}/);
-                    if (namedMatch) {
-                        specifiers = namedMatch[1]
-                            .split(",")
-                            .map((s) => s.trim())
-                            .filter((s) => s !== "");
+            // Handle combined default and named imports
+            const defaultImports = [];
+            const namedImports = [];
+            const typeImports = [];
+            let hasNamed = false;
+            let hasDefault = false;
+            if (importNode.specifiers) {
+                for (const specifier of importNode.specifiers) {
+                    if (specifier.type === "ImportDefaultSpecifier") {
+                        defaultImports.push(specifier.local.name);
+                        hasDefault = true;
                     }
-                }
-                else {
-                    type = "typeDefault";
-                    const defaultMatch = importStmt.match(/import\s+type\s+(\w+|\*\s+as\s+\w+)/);
-                    if (defaultMatch) {
-                        specifiers = [defaultMatch[1]];
+                    else if (specifier.type === "ImportNamespaceSpecifier") {
+                        // For namespace imports, we keep the full "* as name" syntax
+                        defaultImports.push(`* as ${specifier.local.name}`);
+                        hasDefault = true;
                     }
-                }
-            }
-            else if (importStmt.includes("{")) {
-                type = "named";
-                const namedMatch = importStmt.match(/import\s+(?:\w+\s*,\s*)?{([^}]+)}/);
-                const defaultWithNamedMatch = importStmt.match(/import\s+(\w+|\*\s+as\s+\w+)\s*,\s*{/);
-                const defaultSpecifier = defaultWithNamedMatch ? defaultWithNamedMatch[1] : null;
-                if (namedMatch) {
-                    const rawSpecifiers = namedMatch[1]
-                        .split(/,|\n/)
-                        .map((s) => s.trim())
-                        .filter((s) => s !== "");
-                    const regularSpecifiers = [];
-                    const typeSpecifiers = [];
-                    for (const spec of rawSpecifiers) {
-                        if (spec.startsWith("type ")) {
-                            typeSpecifiers.push(spec.substring(5).trim());
+                    else if (specifier.type === "ImportSpecifier") {
+                        const importedName = specifier.imported.type === 'Identifier'
+                            ? specifier.imported.name
+                            : specifier.imported.value;
+                        const localName = specifier.local.name;
+                        const specifierStr = importedName === localName
+                            ? importedName
+                            : `${importedName} as ${localName}`;
+                        if (isTypeImport) {
+                            typeImports.push(specifierStr);
                         }
                         else {
-                            regularSpecifiers.push(spec);
+                            namedImports.push(specifierStr);
                         }
-                    }
-                    const deduplicatedRegularSpecifiers = this.deduplicateSpecifiers(regularSpecifiers);
-                    if (typeSpecifiers.length > 0) {
-                        const result = [];
-                        if (defaultSpecifier) {
-                            result.push({ type: "default", source, specifiers: [defaultSpecifier], raw: `import ${defaultSpecifier} from '${source}';`, groupName, isPriority, appSubfolder });
-                        }
-                        if (deduplicatedRegularSpecifiers.length > 0) {
-                            result.push({ type: "named", source, specifiers: deduplicatedRegularSpecifiers, raw: `import { ${deduplicatedRegularSpecifiers.join(", ")} } from '${source}';`, groupName, isPriority, appSubfolder });
-                        }
-                        const deduplicatedTypeSpecifiers = this.deduplicateSpecifiers(typeSpecifiers);
-                        result.push({ type: "typeNamed", source, specifiers: deduplicatedTypeSpecifiers, raw: `import type { ${deduplicatedTypeSpecifiers.join(", ")} } from '${source}';`, groupName, isPriority, appSubfolder });
-                        return result;
-                    }
-                    // Si nous avons à la fois un import par défaut et des imports nommés, créer deux objets d'import distincts
-                    if (defaultSpecifier && deduplicatedRegularSpecifiers.length > 0) {
-                        const result = [];
-                        result.push({
-                            type: "default",
-                            source,
-                            specifiers: [defaultSpecifier],
-                            raw: `import ${defaultSpecifier} from '${source}';`,
-                            groupName,
-                            isPriority,
-                            appSubfolder
-                        });
-                        result.push({
-                            type: "named",
-                            source,
-                            specifiers: deduplicatedRegularSpecifiers,
-                            raw: `import { ${deduplicatedRegularSpecifiers.join(", ")} } from '${source}';`,
-                            groupName,
-                            isPriority,
-                            appSubfolder
-                        });
-                        return result;
-                    }
-                    specifiers = deduplicatedRegularSpecifiers;
-                    if (defaultSpecifier && deduplicatedRegularSpecifiers.length === 0) {
-                        type = "default";
-                        specifiers = [defaultSpecifier];
+                        hasNamed = true;
                     }
                 }
             }
-            else if (importStmt.includes("* as ")) {
-                const namespaceMatch = importStmt.match(/import\s+\*\s+as\s+(\w+)/);
-                if (namespaceMatch) {
-                    type = "default";
-                    specifiers = [namespaceMatch[1]];
+            // Handle mixed default and named imports case
+            if (hasDefault && hasNamed) {
+                const result = [];
+                if (defaultImports.length > 0) {
+                    result.push({
+                        type: isTypeImport ? "typeDefault" : "default",
+                        source,
+                        specifiers: defaultImports,
+                        raw: importStmt,
+                        groupName,
+                        isPriority,
+                        appSubfolder
+                    });
+                }
+                if (namedImports.length > 0) {
+                    result.push({
+                        type: isTypeImport ? "typeNamed" : "named",
+                        source,
+                        specifiers: namedImports,
+                        raw: importStmt,
+                        groupName,
+                        isPriority,
+                        appSubfolder
+                    });
+                }
+                if (typeImports.length > 0) {
+                    result.push({
+                        type: "typeNamed",
+                        source,
+                        specifiers: typeImports,
+                        raw: importStmt,
+                        groupName,
+                        isPriority,
+                        appSubfolder
+                    });
+                }
+                if (result.length > 0) {
+                    return result;
                 }
             }
-            else {
-                type = "default";
-                const defaultMatch = importStmt.match(/import\s+(\w+|\*\s+as\s+\w+)/);
-                if (defaultMatch) {
-                    specifiers = [defaultMatch[1]];
-                }
+            if (defaultImports.length > 0) {
+                return {
+                    type: isTypeImport ? "typeDefault" : "default",
+                    source,
+                    specifiers: defaultImports,
+                    raw: importStmt,
+                    groupName,
+                    isPriority,
+                    appSubfolder,
+                };
             }
-            if (!isSideEffect && specifiers.length === 0) {
-                throw new errors_1.ImportParserError("Aucun spécificateur trouvé dans l'import", importStmt);
+            if (namedImports.length > 0) {
+                return {
+                    type: isTypeImport ? "typeNamed" : "named",
+                    source,
+                    specifiers: namedImports,
+                    raw: importStmt,
+                    groupName,
+                    isPriority,
+                    appSubfolder,
+                };
             }
-            return {
-                type,
-                source,
-                specifiers,
-                raw: importStmt,
-                groupName,
-                isPriority,
-                appSubfolder,
-            };
+            if (typeImports.length > 0) {
+                return {
+                    type: "typeNamed",
+                    source,
+                    specifiers: typeImports,
+                    raw: importStmt,
+                    groupName,
+                    isPriority,
+                    appSubfolder,
+                };
+            }
+            throw new errors_1.ImportParserError("Aucun spécificateur trouvé dans l'import", importStmt);
         }
         catch (error) {
             if (error instanceof errors_1.ImportParserError) {

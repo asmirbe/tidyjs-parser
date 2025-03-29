@@ -344,7 +344,7 @@ describe('Import Parser - General Cases', () => {
             expect(miscGroup?.imports).toHaveLength(1);
             // Type is 'default' because a namespace import is treated as a default import
             expect(miscGroup?.imports[0].type).toBe('default');
-            expect(miscGroup?.imports[0].specifiers).toEqual(['ReactDom']);
+            expect(miscGroup?.imports[0].specifiers).toEqual(['* as ReactDom']);
         });
     });
 
