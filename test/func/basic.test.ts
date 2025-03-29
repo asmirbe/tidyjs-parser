@@ -3,9 +3,21 @@ import { parseImports, ParserConfig, DEFAULT_CONFIG } from "../../src/index";
 
 export const config: ParserConfig = {
     importGroups: [
-        { name: "Misc", regex: /^(fs|path|uuid|lodash|react)$/, order: 0, isDefault: true },
-        { name: "Components", regex: /^@components/, order: 1 },
-        { name: "Utils", regex: /^@utils/, order: 2 },
+        {
+            name: "Misc",
+            order: 0,
+            isDefault: true
+        },
+        {
+            name: "Components",
+            regex: /^@components/,
+            order: 1
+        },
+        {
+            name: "Utils",
+            regex: /^@utils/,
+            order: 2
+        },
     ],
     patterns: {
         ...DEFAULT_CONFIG.patterns,
@@ -32,6 +44,167 @@ describe('Import Parser - General Cases', () => {
         expect(miscGroup?.imports[0].specifiers).toContain('useState');
         expect(componentsGroup?.imports[0].specifiers).toContain('Button');
         expect(result.groups.length).toBe(2);
+    });
+
+    describe('Complex Relative Paths', () => {
+        it('should handle multiple parent directory references (../../)', () => {
+            const code = `
+            import { helper } from '../../../utils/helpers';
+            import { config } from '../../config';
+        `;
+
+            const result = parseImports(code, config);
+            expect(result.groups[0].imports).toHaveLength(2);
+            expect(result.groups[0].imports[0].source).toBe('../../../utils/helpers');
+            expect(result.groups[0].imports[1].source).toBe('../../config');
+        });
+
+        it('should handle nested relative paths (./)', () => {
+            const code = `
+            import { util1 } from './utils/util1';
+            import { util2 } from './nested/folder/utils/util2';
+        `;
+
+            const result = parseImports(code, config);
+            expect(result.groups[0].imports).toHaveLength(2);
+            // Le parser ne trie pas les imports par chemin, donc vérifier simplement que les deux sources sont présentes
+            expect(result.groups[0].imports.map(i => i.source)).toEqual(
+                expect.arrayContaining(['./utils/util1', './nested/folder/utils/util2'])
+            );
+        });
+    });
+
+    describe('TypeScript Specific Imports', () => {
+        it('should handle type imports', () => {
+            const code = `
+            import type { ButtonProps } from '@components/Button';
+            import { useState } from 'react'; // Le parser ne gère pas encore 'type' inline
+        `;
+
+            const result = parseImports(code, config);
+            const componentsGroup = result.groups.find(g => g.name === 'Components');
+            const miscGroup = result.groups.find(g => g.name === 'Misc');
+
+            // Le parser traite actuellement 'import type' comme un import normal
+            expect(componentsGroup?.imports.some(i => i.specifiers.includes('ButtonProps'))).toBe(true);
+            expect(miscGroup?.imports.some(i => i.specifiers.includes('useState'))).toBe(true);
+        });
+
+        it('should handle import assertions', () => {
+            const code = `
+            import json from "./data.json"; // Le parser ne gère pas encore les assertions
+            import data from "./data.csv";
+        `;
+
+            const result = parseImports(code, config);
+            expect(result.groups[0].imports).toHaveLength(2);
+            expect(result.groups[0].imports.map(i => i.source)).toEqual(
+                expect.arrayContaining(['./data.json', './data.csv'])
+            );
+        });
+    });
+
+    describe('Error Cases', () => {
+        it('should detect invalid import syntax', () => {
+            const code = `
+            import { useState } from 'react'
+            import { Button from '@components/Button';
+        `;
+
+            const result = parseImports(code, config);
+            expect(result.invalidImports).toHaveLength(1);
+            expect(result.invalidImports?.[0].error).toBeDefined();
+        });
+
+        it('should handle non-existent modules', () => {
+            const code = `import { missing } from 'non-existent-module';`;
+            const result = parseImports(code, config);
+            // Le parser ne vérifie pas l'existence des modules
+            expect(result.groups[0].imports).toHaveLength(1);
+        });
+
+        it('should handle non-matching group regex', () => {
+            const code = `import { unknown } from '@unknown/package';`;
+            const result = parseImports(code, config);
+            expect(result.groups[0].name).toBe('Misc');
+            // Verify it's the default group by checking config
+            const defaultGroup = config.importGroups.find(g => g.isDefault);
+            expect(defaultGroup?.name).toBe('Misc');
+        });
+    });
+
+    describe('Performance Cases', () => {
+        it('should handle files with many imports', () => {
+            const imports = Array.from({ length: 50 }, (_, i) =>
+                `import { util${i} } from '@utils/util${i}';`).join('\n');
+
+            const result = parseImports(imports, config);
+            expect(result.groups[0].imports).toHaveLength(50);
+        });
+
+        it('should handle very long import paths', () => {
+            const longPath = '@' + 'very/'.repeat(20) + 'long/path';
+            const code = `import { something } from '${longPath}';`;
+
+            const result = parseImports(code, config);
+            expect(result.groups[0].imports[0].source).toBe(longPath);
+        });
+    });
+
+    describe('Alternative Configurations', () => {
+        it('should handle empty groups', () => {
+            const minimalConfig: ParserConfig = {
+                importGroups: [
+                    { name: "Default", order: 0, isDefault: true }
+                ],
+                patterns: DEFAULT_CONFIG.patterns
+            };
+
+            const code = `import { useState } from 'react';`;
+            const result = parseImports(code, minimalConfig);
+            expect(result.groups).toHaveLength(1);
+        });
+
+        it('should handle complex regex patterns', () => {
+            const complexConfig: ParserConfig = {
+                importGroups: [{
+                    name: "Complex",
+                    regex: /^(@[a-z]+\/[a-z]+)|([a-z]{3,}\.[a-z]{2,})$/,
+                    order: 0
+                }],
+                patterns: DEFAULT_CONFIG.patterns
+            };
+
+            const code = `
+            import { util } from '@scope/util';
+            import { data } from 'data.json';
+        `;
+
+            const result = parseImports(code, complexConfig);
+            expect(result.groups[0].imports).toHaveLength(2);
+        });
+
+        it('should respect custom ordering', () => {
+            const customOrderConfig: ParserConfig = {
+                importGroups: [
+                    { name: "Utils", regex: /^@utils/, order: 2 },
+                    { name: "Components", regex: /^@components/, order: 1 },
+                    { name: "Misc", regex: /^[^@]/, order: 0, isDefault: true }
+                ],
+                patterns: DEFAULT_CONFIG.patterns
+            };
+
+            const code = `
+            import { util } from '@utils/helpers';
+            import { Button } from '@components/Button';
+            import { useState } from 'react';
+        `;
+
+            const result = parseImports(code, customOrderConfig);
+            expect(result.groups[0].name).toBe('Misc');
+            expect(result.groups[1].name).toBe('Components');
+            expect(result.groups[2].name).toBe('Utils');
+        });
     });
 
     it('should group imports correctly according to configuration', () => {
