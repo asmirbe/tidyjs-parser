@@ -1,6 +1,6 @@
 import { ParserConfig } from './types';
 export type ConfigValidationError = {
-    type: 'regex' | 'order' | 'structure';
+    type: 'regex' | 'order' | 'structure' | 'formatting';
     field: string;
     message: string;
     value?: unknown;

@@ -19,6 +19,7 @@ export type ParserConfig = {
     importGroups: ConfigImportGroup[];
     typeOrder?: TypeOrder;
     patterns?: SourcePatterns;
+    formatting?: FormattingOptions;
 };
 export type ParsedImport = {
     type: ImportType;
@@ -43,6 +44,12 @@ export type ParserResult = {
     originalImports: string[];
     appSubfolders: string[];
     invalidImports?: InvalidImport[];
+};
+export type FormattingOptions = {
+    quoteStyle?: 'single' | 'double';
+    semicolons?: boolean;
+    multilineIndentation?: number | 'tab';
+    maxLineLength?: number;
 };
 export type SourcePatterns = {
     subfolderPattern?: RegExp;

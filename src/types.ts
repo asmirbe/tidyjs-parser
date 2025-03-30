@@ -25,6 +25,7 @@ export type ParserConfig = {
   importGroups: ConfigImportGroup[];
   typeOrder?: TypeOrder;
   patterns?: SourcePatterns;
+  formatting?: FormattingOptions;
 };
 
 export type ParsedImport = {
@@ -55,11 +56,24 @@ export type ParserResult = {
   invalidImports?: InvalidImport[];
 }
 
+export type FormattingOptions = {
+  quoteStyle?: 'single' | 'double';
+  semicolons?: boolean;
+  multilineIndentation?: number | 'tab';
+  maxLineLength?: number;
+};
+
 export type SourcePatterns = {
   subfolderPattern?: RegExp;
 };
 
 export const DEFAULT_CONFIG: Partial<ParserConfig> = {
+  formatting: {
+    quoteStyle: 'single',
+    semicolons: true,
+    multilineIndentation: 2,
+    maxLineLength: 80
+  },
   typeOrder: {
     sideEffect: 0,
     default: 1,

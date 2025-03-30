@@ -1,7 +1,7 @@
-import { ParserConfig, ConfigImportGroup, TypeOrder, SourcePatterns } from './types';
+import { ParserConfig, ConfigImportGroup, TypeOrder, SourcePatterns, FormattingOptions } from './types';
 
 export type ConfigValidationError = {
-    type: 'regex' | 'order' | 'structure';
+    type: 'regex' | 'order' | 'structure' | 'formatting';
     field: string;
     message: string;
     value?: unknown;
@@ -69,6 +69,58 @@ function validateRegExp(regex: RegExp | string, field: string): ValidationRespon
             message: 'Too permissive regular expression',
             value: regex,
             suggestion: 'Use a more specific pattern',
+        });
+    }
+
+    return { errors, warnings };
+}
+
+function validateFormatting(formatting: FormattingOptions): ValidationResponse {
+    const errors: ConfigValidationError[] = [];
+    const warnings: ConfigValidationError[] = [];
+
+    if (formatting.quoteStyle && !['single', 'double'].includes(formatting.quoteStyle)) {
+        errors.push({
+            type: 'formatting',
+            field: 'formatting.quoteStyle',
+            message: 'Invalid quote style',
+            value: formatting.quoteStyle,
+            suggestion: 'Use either "single" or "double"'
+        });
+    }
+
+    if (formatting.multilineIndentation !== undefined) {
+        if (formatting.multilineIndentation === 'tab') {
+            // Valid case
+        } else if (typeof formatting.multilineIndentation === 'number') {
+            if (formatting.multilineIndentation < 0 || formatting.multilineIndentation > 8) {
+                warnings.push({
+                    type: 'formatting',
+                    field: 'formatting.multilineIndentation',
+                    message: 'Indentation should be between 0 and 8 spaces',
+                    value: formatting.multilineIndentation,
+                });
+            }
+        } else {
+            errors.push({
+                type: 'formatting',
+                field: 'formatting.multilineIndentation',
+                message: 'Invalid indentation value',
+                value: formatting.multilineIndentation,
+                suggestion: 'Use a number or "tab"'
+            });
+        }
+    }
+
+    if (formatting.maxLineLength !== undefined &&
+        (typeof formatting.maxLineLength !== 'number' ||
+            formatting.maxLineLength < 20 ||
+            formatting.maxLineLength > 200)) {
+        warnings.push({
+            type: 'formatting',
+            field: 'formatting.maxLineLength',
+            message: 'Line length should be between 20 and 200',
+            value: formatting.maxLineLength,
         });
     }
 
@@ -195,6 +247,12 @@ export function validateConfig(config: ParserConfig): ValidationResult {
 
     if (config.patterns) {
         const validation = validateSourcePatterns(config.patterns);
+        errors.push(...validation.errors);
+        warnings.push(...validation.warnings);
+    }
+
+    if (config.formatting) {
+        const validation = validateFormatting(config.formatting);
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }

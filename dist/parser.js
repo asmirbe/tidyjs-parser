@@ -380,7 +380,9 @@ class ImportParser {
     }
     cleanImportStatement(importStmt) {
         const lines = importStmt.split("\n");
+        const formatting = this.config.formatting || types_1.DEFAULT_CONFIG.formatting;
         const cleanedLines = [];
+        let isMultiline = lines.length > 1;
         for (const line of lines) {
             if (line.trim().startsWith("//")) {
                 continue;
@@ -393,9 +395,30 @@ class ImportParser {
                 cleanedLines.push(cleanedLine);
             }
         }
-        let cleaned = cleanedLines.join(" ").trim();
-        if (!cleaned.endsWith(";")) {
+        let cleaned = cleanedLines.join(isMultiline ? "\n" : " ").trim();
+        // Gestion des quotes
+        if (formatting?.quoteStyle === 'double') {
+            cleaned = cleaned.replace(/'/g, '"');
+        }
+        else if (formatting?.quoteStyle === 'single') {
+            cleaned = cleaned.replace(/"/g, "'");
+        }
+        // Gestion des point-virgules
+        if (formatting?.semicolons === false) {
+            cleaned = cleaned.replace(/;+$/, '');
+        }
+        else if (!cleaned.endsWith(";")) {
             cleaned += ";";
+        }
+        // Gestion de l'indentation multiligne
+        if (isMultiline && formatting?.multilineIndentation) {
+            const indent = formatting.multilineIndentation === 'tab'
+                ? '\t'
+                : ' '.repeat(Number(formatting.multilineIndentation));
+            cleaned = cleaned
+                .split('\n')
+                .map((line, i) => i > 0 ? indent + line : line)
+                .join('\n');
         }
         return cleaned;
     }
