@@ -14,7 +14,6 @@ declare class ImportParser {
         invalidImports: InvalidImport[];
     };
     private parseImport;
-    private deduplicateSpecifiers;
     private isSourcePriority;
     private determineGroupName;
     private cleanImportStatement;

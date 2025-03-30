@@ -283,27 +283,6 @@ class ImportParser {
             throw new errors_1.ImportParserError(`Erreur lors du parsing de l'import: ${error instanceof Error ? error.message : String(error)}`, importStmt);
         }
     }
-    deduplicateSpecifiers(specifiers) {
-        const uniqueSpecs = new Map();
-        for (const spec of specifiers) {
-            const isTypeSpec = spec.startsWith("type ");
-            const specWithoutType = isTypeSpec ? spec.substring(5).trim() : spec;
-            let baseSpecName;
-            const fullSpec = spec;
-            if (specWithoutType.includes(" as ")) {
-                const [baseName] = specWithoutType.split(" as ");
-                baseSpecName = baseName.trim();
-            }
-            else {
-                baseSpecName = specWithoutType;
-            }
-            const uniqueKey = (isTypeSpec ? "type_" : "") + baseSpecName;
-            if (!uniqueSpecs.has(uniqueKey)) {
-                uniqueSpecs.set(uniqueKey, fullSpec);
-            }
-        }
-        return Array.from(uniqueSpecs.values());
-    }
     isSourcePriority(source) {
         const currentGroup = this.config.importGroups.find(group => {
             if (!group.regex)

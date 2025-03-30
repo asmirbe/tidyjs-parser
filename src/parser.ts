@@ -85,11 +85,7 @@ class ImportParser {
     this.patterns = this.config.patterns as SourcePatterns;
   }
 
-  public parse(sourceCode: string): {
-    groups: ImportGroup[];
-    originalImports: string[];
-    invalidImports: InvalidImport[];
-  } {
+  public parse(sourceCode: string): { groups: ImportGroup[]; originalImports: string[]; invalidImports: InvalidImport[] } {
     const originalImports: string[] = [];
     const invalidImports: InvalidImport[] = [];
     const potentialImportLines: string[] = [];
@@ -334,33 +330,6 @@ class ImportParser {
 
       throw new ImportParserError(`Erreur lors du parsing de l'import: ${error instanceof Error ? error.message : String(error)}`, importStmt);
     }
-  }
-
-  private deduplicateSpecifiers(specifiers: string[]): string[] {
-    const uniqueSpecs = new Map<string, string>();
-
-    for (const spec of specifiers) {
-      const isTypeSpec = spec.startsWith("type ");
-      const specWithoutType = isTypeSpec ? spec.substring(5).trim() : spec;
-
-      let baseSpecName: string;
-      const fullSpec = spec;
-
-      if (specWithoutType.includes(" as ")) {
-        const [baseName] = specWithoutType.split(" as ");
-        baseSpecName = baseName.trim();
-      } else {
-        baseSpecName = specWithoutType;
-      }
-
-      const uniqueKey = (isTypeSpec ? "type_" : "") + baseSpecName;
-
-      if (!uniqueSpecs.has(uniqueKey)) {
-        uniqueSpecs.set(uniqueKey, fullSpec);
-      }
-    }
-
-    return Array.from(uniqueSpecs.values());
   }
 
   private isSourcePriority(source: string): boolean {

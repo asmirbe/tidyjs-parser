@@ -367,4 +367,41 @@ describe("ImportParser", () => {
             expect(othersGroup!.imports.map(i => i.source)).toEqual(['@user/data']);
         });
     });
+
+    describe("Specifiers deduplication", () => {
+        const dedupConfig: ParserConfig = {
+            importGroups: [
+                {
+                    name: "Default",
+                    order: 1,
+                    isDefault: true
+                }
+            ]
+        };
+
+        it("should remove duplicate specifiers from same source imports", () => {
+            const parser = new ImportParser(dedupConfig);
+            const result = parser.parse(`
+                import { Component } from '@angular/core';
+                import { Component, Injectable } from '@angular/core';
+                import { Injectable, NgModule } from '@angular/core';
+            `);
+
+            expect(result.groups.length).toBe(1);
+            const defaultGroup = result.groups[0];
+            expect(defaultGroup.imports.length).toBe(1);
+            const importStatement = defaultGroup.imports[0].raw.trim();
+
+            expect(importStatement).toContain("Component");
+            expect(importStatement).toContain("Injectable");
+            expect(importStatement).toContain("NgModule");
+            // Verify no duplicates
+            expect(importStatement.match(/Component/g)?.length).toBe(1);
+            expect(importStatement.match(/Injectable/g)?.length).toBe(1);
+        });
+    });
+
+    describe("Invalid imports", () => {
+
+    })
 });
