@@ -78,7 +78,6 @@ class ImportParser {
                 if (node.type === "ImportDeclaration") {
                     const importText = sourceCode.substring(node.start || 0, node.end || 0).trim();
                     potentialImportLines.push(importText);
-                    originalImports.push(importText);
                 }
             });
         }
