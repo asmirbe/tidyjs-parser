@@ -301,20 +301,17 @@ describe("Import Parser - General Cases", () => {
             const miscGroup = result.groups.find((g) => g.name === "Misc");
             const componentsGroup = result.groups.find((g) => g.name === "Components");
 
-            // Check that default and named imports are now separated
             const reactDefaultImport = miscGroup?.imports.find((imp) => imp.type === "default" && imp.source === "react");
             const reactNamedImport = miscGroup?.imports.find((imp) => imp.type === "named" && imp.source === "react");
 
             const buttonDefaultImport = componentsGroup?.imports.find((imp) => imp.type === "default" && imp.source === "@components/Button");
             const buttonNamedImport = componentsGroup?.imports.find((imp) => imp.type === "named" && imp.source === "@components/Button");
 
-            // Check presence of default imports
             expect(reactDefaultImport).toBeDefined();
             expect(reactDefaultImport?.specifiers).toContain("React");
             expect(buttonDefaultImport).toBeDefined();
             expect(buttonDefaultImport?.specifiers).toContain("Button");
 
-            // Check presence of named imports
             expect(reactNamedImport).toBeDefined();
             expect(reactNamedImport?.specifiers).toContain("useState");
             expect(buttonNamedImport).toBeDefined();
@@ -328,10 +325,8 @@ describe("Import Parser - General Cases", () => {
             const result = parseImports(code, config);
             const miscGroup = result.groups.find((g) => g.name === "Misc");
 
-            // Check that namespace import is correctly grouped
             expect(miscGroup).toBeDefined();
             expect(miscGroup?.imports).toHaveLength(1);
-            // Type is 'default' because a namespace import is treated as a default import
             expect(miscGroup?.imports[0].type).toBe("default");
             expect(miscGroup?.imports[0].specifiers).toEqual(["* as ReactDom"]);
         });
@@ -417,7 +412,6 @@ describe("Duplicate Default Imports", () => {
                 import BulletinComplementaireIcon from '@app/dossier/utils/bulletin/bulletin-complementaire.svg?react';
             `;
 
-        // Utiliser une configuration qui place ces imports dans un groupe spécifique pour faciliter le test
         const svgConfig: ParserConfig = {
             importGroups: [
                 { name: "Misc", order: 0, isDefault: true },
@@ -437,10 +431,8 @@ describe("Duplicate Default Imports", () => {
         const mergedImport = svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-annulation.svg?react');
         expect(mergedImport).toBeDefined();
         expect(mergedImport?.type).toBe('default');
-        // Seul le dernier spécificateur rencontré doit être conservé
         expect(mergedImport?.specifiers).toEqual(['BulletinAnnulationIcon']); // C'est le dernier import dans le code d'exemple
 
-        // Vérifier que les autres imports sont présents et corrects
         expect(svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-annule.svg?react')?.specifiers).toEqual(['BulletinAnnuleIcon']);
         expect(svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-remplacement.svg?react')?.specifiers).toEqual(['BulletinRemplacementIcon']);
         expect(svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-complementaire.svg?react')?.specifiers).toEqual(['BulletinComplementaireIcon']);
