@@ -4,10 +4,10 @@ export type ConfigImportGroup = {
     priority?: number;
 } & ({
     isDefault: true;
-    regex?: RegExp;
+    match?: RegExp;
 } | {
     isDefault?: false;
-    regex: RegExp;
+    match: RegExp;
 });
 export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect";
 export type ImportSource = string;
@@ -42,14 +42,13 @@ export type InvalidImport = {
 export type ParserResult = {
     groups: ImportGroup[];
     originalImports: string[];
-    appSubfolders: string[];
+    subFolders: string[];
     invalidImports?: InvalidImport[];
 };
 export type FormattingOptions = {
     quoteStyle?: 'single' | 'double';
     semicolons?: boolean;
     multilineIndentation?: number | 'tab';
-    maxLineLength?: number;
 };
 export type SourcePatterns = {
     subfolderPattern?: RegExp;

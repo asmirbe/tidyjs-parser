@@ -121,13 +121,13 @@ describe("ImportParser", () => {
     });
 
     describe("Group priorities", () => {
-        describe("Priority based on pattern order in regex", () => {
-            it("should prioritize imports according to their order in the regex pattern", () => {
+        describe("Priority based on pattern order in match", () => {
+            it("should prioritize imports according to their order in the match pattern", () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
                             name: "React",
-                            regex: /^(react|react-dom|react-router)$/,
+                            match: /^(react|react-dom|react-router)$/,
                             order: 1
                         },
                         {
@@ -147,7 +147,7 @@ describe("ImportParser", () => {
 
                 const reactGroup = result.groups.find(g => g.name === "React");
                 expect(reactGroup).toBeDefined();
-                // Imports should be sorted according to the order in the regex
+                // Imports should be sorted according to the order in the match
                 expect(reactGroup!.imports.map(i => i.source)).toEqual(['react', 'react-dom', 'react-router']);
             });
 
@@ -156,7 +156,7 @@ describe("ImportParser", () => {
                     importGroups: [
                         {
                             name: "Components",
-                            regex: /^@components\/(core\/|shared\/|ui\/).*$/,
+                            match: /^@components\/(core\/|shared\/|ui\/).*$/,
                             order: 1
                         },
                         {
@@ -190,7 +190,7 @@ describe("ImportParser", () => {
                     importGroups: [
                         {
                             name: "React",
-                            regex: /^react/,
+                            match: /^react/,
                             order: 1
                         },
                         {
@@ -218,7 +218,7 @@ describe("ImportParser", () => {
                     importGroups: [
                         {
                             name: "React",
-                            regex: /^react/,
+                            match: /^react/,
                             order: 1
                         }
                     ]
@@ -246,13 +246,13 @@ describe("ImportParser", () => {
                     },
                     {
                         name: "React",
-                        regex: /^react/,
+                        match: /^react/,
                         order: 1,
                         priority: 2
                     },
                     {
                         name: "Modules",
-                        regex: /^react|^@react/,
+                        match: /^react|^@react/,
                         order: 2,
                         priority: 1
                     }
@@ -278,7 +278,7 @@ describe("ImportParser", () => {
             expect(othersGroup!.imports.map(i => i.source)).toEqual(['@user/data']);
         });
 
-        it("should use regex specificity when priorities are equal", () => {
+        it("should use match specificity when priorities are equal", () => {
             const config: ParserConfig = {
                 importGroups: [
                     {
@@ -288,13 +288,13 @@ describe("ImportParser", () => {
                     },
                     {
                         name: "React Router",
-                        regex: /^react-router/,
+                        match: /^react-router/,
                         order: 1,
                         priority: 2
                     },
                     {
                         name: "React",
-                        regex: /^react/,
+                        match: /^react/,
                         order: 1,
                         priority: 2
                     }
@@ -333,12 +333,12 @@ describe("ImportParser", () => {
                     },
                     {
                         name: "First",
-                        regex: /^react|^@react/,
+                        match: /^react|^@react/,
                         order: 1
                     },
                     {
                         name: "Second",
-                        regex: /^react-router/,
+                        match: /^react-router/,
                         order: 2
                     }
                 ]

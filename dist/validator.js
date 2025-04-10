@@ -87,17 +87,6 @@ function validateFormatting(formatting) {
             });
         }
     }
-    if (formatting.maxLineLength !== undefined &&
-        (typeof formatting.maxLineLength !== 'number' ||
-            formatting.maxLineLength < 20 ||
-            formatting.maxLineLength > 200)) {
-        warnings.push({
-            type: 'formatting',
-            field: 'formatting.maxLineLength',
-            message: 'Line length should be between 20 and 200',
-            value: formatting.maxLineLength,
-        });
-    }
     return { errors, warnings };
 }
 function validateImportGroup(group) {
@@ -127,8 +116,8 @@ function validateImportGroup(group) {
             value: group.priority,
         });
     }
-    if (group.regex && !group.isDefault) {
-        const validation = validateRegExp(group.regex, 'regex');
+    if (group.match && !group.isDefault) {
+        const validation = validateRegExp(group.match, 'match');
         errors.push(...validation.errors);
         warnings.push(...validation.warnings);
     }

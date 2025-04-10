@@ -10,12 +10,12 @@ export const config: ParserConfig = {
         },
         {
             name: "Components",
-            regex: /^@components/,
+            match: /^@components/,
             order: 1
         },
         {
             name: "Utils",
-            regex: /^@utils/,
+            match: /^@utils/,
             order: 2
         },
     ],
@@ -123,7 +123,7 @@ describe('Import Parser - General Cases', () => {
             expect(result.groups[0].imports).toHaveLength(1);
         });
 
-        it('should handle non-matching group regex', () => {
+        it('should handle non-matching group match', () => {
             const code = `import { unknown } from '@unknown/package';`;
             const result = parseImports(code, config);
             expect(result.groups[0].name).toBe('Misc');
@@ -165,11 +165,11 @@ describe('Import Parser - General Cases', () => {
             expect(result.groups).toHaveLength(1);
         });
 
-        it('should handle complex regex patterns', () => {
+        it('should handle complex match patterns', () => {
             const complexConfig: ParserConfig = {
                 importGroups: [{
                     name: "Complex",
-                    regex: /^(@[a-z]+\/[a-z]+)|([a-z]{3,}\.[a-z]{2,})$/,
+                    match: /^(@[a-z]+\/[a-z]+)|([a-z]{3,}\.[a-z]{2,})$/,
                     order: 0
                 }],
                 patterns: DEFAULT_CONFIG.patterns
@@ -187,9 +187,9 @@ describe('Import Parser - General Cases', () => {
         it('should respect custom ordering', () => {
             const customOrderConfig: ParserConfig = {
                 importGroups: [
-                    { name: "Utils", regex: /^@utils/, order: 2 },
-                    { name: "Components", regex: /^@components/, order: 1 },
-                    { name: "Misc", regex: /^[^@]/, order: 0, isDefault: true }
+                    { name: "Utils", match: /^@utils/, order: 2 },
+                    { name: "Components", match: /^@components/, order: 1 },
+                    { name: "Misc", match: /^[^@]/, order: 0, isDefault: true }
                 ],
                 patterns: DEFAULT_CONFIG.patterns
             };
@@ -228,7 +228,7 @@ describe('Import Parser - General Cases', () => {
     });
 
     describe('Group Priority', () => {
-        it('should prioritize imports according to their regex pattern order', () => {
+        it('should prioritize imports according to their match pattern order', () => {
             const code = `
                 import { useState } from 'react';
                 import { Button } from '@components/Button';
@@ -415,5 +415,43 @@ describe('Import Parser - General Cases', () => {
             expect(result.groups.length).toBe(3);
             expect(result.groups.find(g => g.name === 'Components')?.imports.length).toBe(2);
         });
+    });
+});
+
+describe('Duplicate Default Imports', () => {
+    it('should merge multiple default imports from the same source', () => {
+        const code = `
+                import BulletinAnnulationSVG from '@app/dossier/utils/bulletin/bulletin-annulation.svg?react';
+                import BulletinAnnuleIcon from '@app/dossier/utils/bulletin/bulletin-annule.svg?react';
+                import BulletinAnnulationIcon from '@app/dossier/utils/bulletin/bulletin-annulation.svg?react'; // Duplicate source
+                import BulletinRemplacementIcon from '@app/dossier/utils/bulletin/bulletin-remplacement.svg?react';
+                import BulletinComplementaireIcon from '@app/dossier/utils/bulletin/bulletin-complementaire.svg?react';
+            `;
+
+        // Utiliser une configuration qui place ces imports dans un groupe spécifique pour faciliter le test
+        const svgConfig: ParserConfig = {
+            importGroups: [
+                { name: "Misc", order: 0, isDefault: true },
+                { name: "SVGs", match: /\.svg\?react$/, order: 1 }
+            ],
+            patterns: DEFAULT_CONFIG.patterns,
+        };
+
+        const result = parseImports(code, svgConfig);
+        const svgGroup = result.groups.find(g => g.name === 'SVGs');
+
+        expect(svgGroup).toBeDefined();
+        expect(svgGroup?.imports).toHaveLength(4); // 3 uniques + 1 fusionné
+
+        const mergedImport = svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-annulation.svg?react');
+        expect(mergedImport).toBeDefined();
+        expect(mergedImport?.type).toBe('default');
+        // Les spécificateurs doivent être fusionnés et triés
+        expect(mergedImport?.specifiers).toEqual(['BulletinAnnulationIcon', 'BulletinAnnulationSVG'].sort());
+
+        // Vérifier que les autres imports sont présents et corrects
+        expect(svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-annule.svg?react')?.specifiers).toEqual(['BulletinAnnuleIcon']);
+        expect(svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-remplacement.svg?react')?.specifiers).toEqual(['BulletinRemplacementIcon']);
+        expect(svgGroup?.imports.find(imp => imp.source === '@app/dossier/utils/bulletin/bulletin-complementaire.svg?react')?.specifiers).toEqual(['BulletinComplementaireIcon']);
     });
 });

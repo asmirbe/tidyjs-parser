@@ -6,7 +6,6 @@ exports.DEFAULT_CONFIG = {
         quoteStyle: 'single',
         semicolons: true,
         multilineIndentation: 2,
-        maxLineLength: 80
     },
     typeOrder: {
         sideEffect: 0,

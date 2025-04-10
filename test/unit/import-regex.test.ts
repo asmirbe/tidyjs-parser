@@ -15,12 +15,12 @@ describe('Import Parser RegExp Test', () => {
                     name: "React",
                     order: 1,
                     priority: 1,
-                    regex: new RegExp(/\breact\b/i)
+                    match: new RegExp(/\breact\b/i)
                 },
                 {
                     name: "DS",
                     order: 3,
-                    regex: /ds/i
+                    match: /ds/i
                 }
             ]
         };

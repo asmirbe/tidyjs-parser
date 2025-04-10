@@ -14,9 +14,9 @@ describe("Config Validator", () => {
     test("should validate a correct configuration", () => {
         const config: ParserConfig = {
             importGroups: [
-                { name: "React", regex: /^react$/, order: 0 },
-                { name: "Components", regex: /^@components/, order: 1 },
-                { name: "Utils", regex: /^@utils/, order: 2 },
+                { name: "React", match: /^react$/, order: 0 },
+                { name: "Components", match: /^@components/, order: 1 },
+                { name: "Utils", match: /^@utils/, order: 2 },
             ],
         };
 
@@ -38,7 +38,7 @@ describe("Config Validator", () => {
     test("should detect an invalid regular expression", () => {
         const config: ParserConfig = {
             importGroups: [
-                { name: "Invalid", regex: createInvalidRegExp(), order: 0 }, // Invalid RegExp
+                { name: "Invalid", match: createInvalidRegExp(), order: 0 }, // Invalid RegExp
             ],
         };
 
@@ -50,7 +50,7 @@ describe("Config Validator", () => {
     test("should detect a too permissive regular expression", () => {
         const config: ParserConfig = {
             importGroups: [
-                { name: "TooPermissive", regex: /.*/, order: 0 },
+                { name: "TooPermissive", match: /.*/, order: 0 },
             ],
         };
 
@@ -62,8 +62,8 @@ describe("Config Validator", () => {
     test("should validate the order of groups", () => {
         const config: ParserConfig = {
             importGroups: [
-                { name: "First", regex: /^first$/, order: 0 },
-                { name: "Also First", regex: /^also-first$/, order: 0 },
+                { name: "First", match: /^first$/, order: 0 },
+                { name: "Also First", match: /^also-first$/, order: 0 },
             ],
         };
 
@@ -74,7 +74,7 @@ describe("Config Validator", () => {
 
     test("should validate typeOrder", () => {
         const config: ParserConfig = {
-            importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
+            importGroups: [{ name: "Test", match: /^test$/, order: 0 }],
             typeOrder: {
                 sideEffect: 0,
                 default: "invalid" as any,
@@ -91,7 +91,7 @@ describe("Config Validator", () => {
 
     test("should validate patterns", () => {
         const config: ParserConfig = {
-            importGroups: [{ name: "Test", regex: /^test$/, order: 0 }],
+            importGroups: [{ name: "Test", match: /^test$/, order: 0 }],
             patterns: {
                 subfolderPattern: createInvalidRegExp(), // Invalid RegExp
             },
@@ -108,7 +108,7 @@ describe("Config Validator", () => {
             importGroups: [
                 {
                     name: "Test",
-                    regex: createInvalidRegExp(),
+                    match: createInvalidRegExp(),
                     order: 0
                 }
             ]
@@ -124,7 +124,7 @@ describe("Config Validator", () => {
             importGroups: [
                 {
                     name: "Components",
-                    regex: /^@components\/(core|shared|ui)\//,
+                    match: /^@components\/(core|shared|ui)\//,
                     order: 0
                 }
             ]
@@ -139,7 +139,7 @@ describe("Config Validator", () => {
         const config: ParserConfig = {
             importGroups: [
                 { name: "Default", isDefault: true, order: 0 },
-                { name: "Test", regex: /^test$/, order: 1 },
+                { name: "Test", match: /^test$/, order: 1 },
             ],
         };
 
@@ -150,7 +150,7 @@ describe("Config Validator", () => {
 
     test("should detect an empty group name", () => {
         const config: ParserConfig = {
-            importGroups: [{ name: "", regex: /^test$/, order: 0 }],
+            importGroups: [{ name: "", match: /^test$/, order: 0 }],
         };
 
         const result = validateConfig(config);
@@ -161,7 +161,7 @@ describe("Config Validator", () => {
     test("should validate priority values", () => {
         const config: ParserConfig = {
             importGroups: [
-                { name: "Test", regex: /^test$/, order: 0, priority: "high" as any },
+                { name: "Test", match: /^test$/, order: 0, priority: "high" as any },
             ],
         };
 

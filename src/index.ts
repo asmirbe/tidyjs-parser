@@ -8,9 +8,9 @@ import type { ParserConfig, ParserResult } from "./types";
 function parseImports(sourceCode: string, config: ParserConfig): ParserResult {
   const parser = new ImportParser(config);
   const { groups, originalImports, invalidImports } = parser.parse(sourceCode);
-  const appSubfolders = parser.getAppSubfolders();
+  const subFolders = parser.getSubfolders();
 
-  return { groups, originalImports, appSubfolders, invalidImports };
+  return { groups, originalImports, subFolders, invalidImports };
 }
 
 export {

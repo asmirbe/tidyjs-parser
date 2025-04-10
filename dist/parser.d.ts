@@ -4,7 +4,7 @@ declare class ImportParser {
     private readonly typeOrder;
     private readonly patterns;
     private readonly defaultGroup;
-    private appSubfolders;
+    private subFolders;
     private extractPatternsFromRegex;
     private findMatchIndexInRegex;
     constructor(config: ParserConfig);
@@ -22,7 +22,7 @@ declare class ImportParser {
     private areImportsSemanticallyEquivalent;
     private organizeImportsIntoGroups;
     private sortImportsWithinGroup;
-    getAppSubfolders(): string[];
+    getSubfolders(): string[];
 }
 export { ImportParser };
 //# sourceMappingURL=parser.d.ts.map

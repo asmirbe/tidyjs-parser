@@ -5,11 +5,11 @@ export type ConfigImportGroup = {
 } & (
     | {
       isDefault: true;
-      regex?: RegExp;
+      match?: RegExp;
     }
     | {
       isDefault?: false;
-      regex: RegExp;
+      match: RegExp;
     }
   );
 
@@ -52,7 +52,7 @@ export type InvalidImport = {
 export type ParserResult = {
   groups: ImportGroup[];
   originalImports: string[];
-  appSubfolders: string[];
+  subFolders: string[];
   invalidImports?: InvalidImport[];
 }
 
@@ -60,7 +60,6 @@ export type FormattingOptions = {
   quoteStyle?: 'single' | 'double';
   semicolons?: boolean;
   multilineIndentation?: number | 'tab';
-  maxLineLength?: number;
 };
 
 export type SourcePatterns = {
@@ -72,7 +71,6 @@ export const DEFAULT_CONFIG: Partial<ParserConfig> = {
     quoteStyle: 'single',
     semicolons: true,
     multilineIndentation: 2,
-    maxLineLength: 80
   },
   typeOrder: {
     sideEffect: 0,

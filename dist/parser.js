@@ -39,8 +39,8 @@ class ImportParser {
                 };
             }
             else {
-                if (!group.regex) {
-                    throw new errors_1.ImportParserError("Regex is required for non-default groups", JSON.stringify(group));
+                if (!group.match) {
+                    throw new errors_1.ImportParserError("Match is required for non-default groups", JSON.stringify(group));
                 }
                 return {
                     ...group,
@@ -58,7 +58,7 @@ class ImportParser {
             typeOrder: { ...types_1.DEFAULT_CONFIG.typeOrder, ...(config.typeOrder ?? {}) },
             patterns
         };
-        this.appSubfolders = new Set();
+        this.subFolders = new Set();
         const defaultGroup = config.importGroups.find((g) => g.isDefault);
         this.defaultGroup = defaultGroup ? defaultGroup.name : "Misc";
         this.typeOrder = this.config.typeOrder;
@@ -109,11 +109,32 @@ class ImportParser {
                 }
                 const normalizedImport = fixed ?? importStmt;
                 const imports = this.parseImport(normalizedImport);
-                if (Array.isArray(imports)) {
-                    parsedImports = parsedImports.concat(imports);
-                }
-                else {
-                    parsedImports.push(imports);
+                const currentImports = Array.isArray(imports) ? imports : [imports];
+                for (const newImport of currentImports) {
+                    // Gérer spécifiquement les imports par défaut (et typeDefault) pour les fusionner immédiatement
+                    if (newImport.type === 'default' || newImport.type === 'typeDefault') {
+                        const existingImportIndex = parsedImports.findIndex(p => (p.type === 'default' || p.type === 'typeDefault') && p.source === newImport.source);
+                        if (existingImportIndex !== -1) {
+                            // Import par défaut existant trouvé pour cette source, fusionner les spécificateurs
+                            const existingImport = parsedImports[existingImportIndex];
+                            const specifiersSet = new Set([...existingImport.specifiers, ...newImport.specifiers]);
+                            existingImport.specifiers = Array.from(specifiersSet).sort();
+                            // Si le nouvel import est 'typeDefault' et l'existant est 'default', promouvoir en 'typeDefault'.
+                            if (newImport.type === 'typeDefault' && existingImport.type === 'default') {
+                                existingImport.type = 'typeDefault';
+                            }
+                            // La mise à jour du 'raw' sera gérée par mergeImports plus tard si nécessaire.
+                        }
+                        else {
+                            // Aucun import par défaut existant pour cette source, ajouter le nouveau
+                            parsedImports.push(newImport);
+                        }
+                    }
+                    else {
+                        // Pour les autres types (named, sideEffect, etc.), les ajouter directement.
+                        // mergeImports s'occupera de fusionner les imports nommés plus tard.
+                        parsedImports.push(newImport);
+                    }
                 }
             }
             catch (error) {
@@ -149,7 +170,7 @@ class ImportParser {
                 const appSubfolderMatch = source.match(this.patterns.subfolderPattern);
                 if (appSubfolderMatch?.[1]) {
                     appSubfolder = appSubfolderMatch[1];
-                    this.appSubfolders.add(appSubfolder);
+                    this.subFolders.add(appSubfolder);
                 }
             }
             const isTypeImport = importNode.importKind === "type";
@@ -165,7 +186,6 @@ class ImportParser {
                     appSubfolder,
                 };
             }
-            // Handle combined default and named imports
             const defaultImports = [];
             const namedImports = [];
             const typeImports = [];
@@ -200,7 +220,6 @@ class ImportParser {
                     }
                 }
             }
-            // Handle mixed default and named imports case
             if (hasDefault && hasNamed) {
                 const result = [];
                 if (defaultImports.length > 0) {
@@ -284,17 +303,17 @@ class ImportParser {
     }
     isSourcePriority(source) {
         const currentGroup = this.config.importGroups.find(group => {
-            if (!group.regex)
+            if (!group.match)
                 return false;
-            return group.regex.test(source);
+            return group.match.test(source);
         });
-        if (!currentGroup?.regex)
+        if (!currentGroup?.match)
             return false;
-        const regexStr = currentGroup.regex.toString();
+        const regexStr = currentGroup.match.toString();
         if (!regexStr.includes('(') || !regexStr.includes('|'))
             return false;
         // Utiliser findMatchIndexInRegex pour déterminer si la source correspond au premier pattern
-        return this.findMatchIndexInRegex(source, currentGroup.regex) === 0;
+        return this.findMatchIndexInRegex(source, currentGroup.match) === 0;
     }
     determineGroupName(source) {
         const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
@@ -302,9 +321,9 @@ class ImportParser {
         const matchingGroups = this.config.importGroups.filter(group => {
             if (group.isDefault)
                 return false;
-            if (!group.regex)
+            if (!group.match)
                 return false;
-            return group.regex.test(source);
+            return group.match.test(source);
         });
         if (matchingGroups.length === 0) {
             return defaultGroupName;
@@ -327,8 +346,8 @@ class ImportParser {
             const [, highestPriorityGroups] = priorityGroups[0];
             if (highestPriorityGroups.length > 1) {
                 return highestPriorityGroups.sort((a, b) => {
-                    const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
-                    const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
+                    const aPattern = a.match?.toString().replace(/[/^$|]/g, '') ?? '';
+                    const bPattern = b.match?.toString().replace(/[/^$|]/g, '') ?? '';
                     if (aPattern.length !== bPattern.length) {
                         return bPattern.length - aPattern.length;
                     }
@@ -345,8 +364,8 @@ class ImportParser {
                 return 1;
             if (!a.isDefault && b.isDefault)
                 return -1;
-            const aPattern = a.regex?.toString().replace(/[/^$|]/g, '') ?? '';
-            const bPattern = b.regex?.toString().replace(/[/^$|]/g, '') ?? '';
+            const aPattern = a.match?.toString().replace(/[/^$|]/g, '') ?? '';
+            const bPattern = b.match?.toString().replace(/[/^$|]/g, '') ?? '';
             if (aPattern.length !== bPattern.length) {
                 return bPattern.length - aPattern.length;
             }
@@ -473,7 +492,7 @@ class ImportParser {
     }
     organizeImportsIntoGroups(imports) {
         const groupMap = new Map();
-        const appSubfolderGroups = new Map();
+        const subfolderGroups = new Map();
         const configGroupMap = new Map();
         this.config.importGroups.forEach((group) => {
             configGroupMap.set(group.name, {
@@ -494,10 +513,10 @@ class ImportParser {
             if (importObj.appSubfolder) {
                 const subfolder = importObj.appSubfolder;
                 const groupName = subfolder;
-                if (!appSubfolderGroups.has(groupName)) {
-                    appSubfolderGroups.set(groupName, []);
+                if (!subfolderGroups.has(groupName)) {
+                    subfolderGroups.set(groupName, []);
                 }
-                appSubfolderGroups.get(groupName).push(importObj);
+                subfolderGroups.get(groupName).push(importObj);
             }
             else if (importObj.groupName && groupMap.has(importObj.groupName)) {
                 groupMap.get(importObj.groupName).push(importObj);
@@ -509,8 +528,8 @@ class ImportParser {
         groupMap.forEach((importsInGroup, groupName) => {
             groupMap.set(groupName, this.sortImportsWithinGroup(importsInGroup));
         });
-        appSubfolderGroups.forEach((importsInGroup, groupName) => {
-            appSubfolderGroups.set(groupName, this.sortImportsWithinGroup(importsInGroup));
+        subfolderGroups.forEach((importsInGroup, groupName) => {
+            subfolderGroups.set(groupName, this.sortImportsWithinGroup(importsInGroup));
         });
         const result = [];
         for (const [name, importsInGroup] of groupMap.entries()) {
@@ -524,24 +543,24 @@ class ImportParser {
             }
         }
         const appGroup = this.config.importGroups.find((g) => {
-            if (!g.regex)
+            if (!g.match)
                 return false;
-            return g.regex && this.patterns.subfolderPattern && g.regex.toString().includes(this.patterns.subfolderPattern.toString().slice(1, -1));
+            return g.match && this.patterns.subfolderPattern && g.match.toString().includes(this.patterns.subfolderPattern.toString().slice(1, -1));
         });
-        const appGroupOrder = appGroup ? appGroup.order : 2;
+        const groupOrder = appGroup ? appGroup.order : 2;
         const appGroupPriority = appGroup ? appGroup.priority : undefined;
-        const sortedSubfolders = Array.from(appSubfolderGroups.keys()).sort();
+        const sortedSubfolders = Array.from(subfolderGroups.keys()).sort();
         for (const subfolderName of sortedSubfolders) {
-            const subfolderImports = appSubfolderGroups.get(subfolderName);
+            const subfolderImports = subfolderGroups.get(subfolderName);
             if (subfolderImports.length > 0) {
                 const subfolderGroup = {
                     name: subfolderName,
-                    order: appGroupOrder,
+                    order: groupOrder,
                     imports: subfolderImports,
                 };
                 if (appGroupPriority !== undefined) {
                     configGroupMap.set(subfolderName, {
-                        order: appGroupOrder,
+                        order: groupOrder,
                         priority: appGroupPriority,
                     });
                 }
@@ -574,8 +593,8 @@ class ImportParser {
             return a.source.localeCompare(b.source);
         });
     }
-    getAppSubfolders() {
-        return Array.from(this.appSubfolders).sort();
+    getSubfolders() {
+        return Array.from(this.subFolders).sort();
     }
 }
 exports.ImportParser = ImportParser;

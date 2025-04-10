@@ -27,7 +27,7 @@ Object.defineProperty(exports, "DEFAULT_CONFIG", { enumerable: true, get: functi
 function parseImports(sourceCode, config) {
     const parser = new parser_1.ImportParser(config);
     const { groups, originalImports, invalidImports } = parser.parse(sourceCode);
-    const appSubfolders = parser.getAppSubfolders();
-    return { groups, originalImports, appSubfolders, invalidImports };
+    const subFolders = parser.getSubfolders();
+    return { groups, originalImports, subFolders, invalidImports };
 }
 __exportStar(require("./types"), exports);
