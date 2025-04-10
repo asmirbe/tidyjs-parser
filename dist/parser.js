@@ -115,11 +115,14 @@ class ImportParser {
                     if (newImport.type === 'default' || newImport.type === 'typeDefault') {
                         const existingImportIndex = parsedImports.findIndex(p => (p.type === 'default' || p.type === 'typeDefault') && p.source === newImport.source);
                         if (existingImportIndex !== -1) {
-                            // Import par défaut existant trouvé pour cette source, fusionner les spécificateurs
+                            // Import par défaut existant trouvé pour cette source.
+                            // Remplacer le spécificateur existant par le nouveau (le dernier rencontré).
+                            // Il ne peut y avoir qu'un seul spécificateur pour un import par défaut.
                             const existingImport = parsedImports[existingImportIndex];
-                            const specifiersSet = new Set([...existingImport.specifiers, ...newImport.specifiers]);
-                            existingImport.specifiers = Array.from(specifiersSet).sort();
+                            existingImport.specifiers = [...newImport.specifiers]; // Prend le dernier spécificateur
+                            existingImport.raw = newImport.raw; // Utiliser aussi le raw du dernier import rencontré
                             // Si le nouvel import est 'typeDefault' et l'existant est 'default', promouvoir en 'typeDefault'.
+                            // Ou si l'existant est 'typeDefault', il le reste.
                             if (newImport.type === 'typeDefault' && existingImport.type === 'default') {
                                 existingImport.type = 'typeDefault';
                             }
