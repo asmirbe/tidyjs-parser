@@ -88,6 +88,54 @@ describe("Import Parser - General Cases", () => {
             expect(miscGroup?.imports.some((i) => i.specifiers.includes("useState"))).toBe(true);
         });
 
+        it("should identify type imports in multi-line imports", () => {
+            const code = `
+            // DS
+            import picto                          from '@core/resources/assets/images/yeap/picto-yeap.png';
+            import cn                             from 'classnames';
+            import type { ARC }                   from '@core/types/arc';
+            import {
+                type FC,
+                useMemo,
+                Fragment,
+                useState,
+                useCallback
+            }                                     from 'react';
+            import { FontAwesomeIcon }            from '@fortawesome/react-fontawesome';
+            import { getDateFormat }              from '@library/utils/dates';
+            import { getFormattedDecimalDigits }  from '@library/utils/number';
+            import { useSearch }                  from '@library/utils/search';
+            import { useTable }                   from '@library/utils/table';
+            `;
+
+            const result = parseImports(code, config);
+            const miscGroup = result.groups.find((g) => g.name === "Misc");
+
+            expect(miscGroup).toBeDefined();
+
+            // Trouver les imports de React
+            const reactImports = miscGroup?.imports.filter(i => i.source === 'react');
+            expect(reactImports?.length).toBe(2);
+
+            // Vérifier l'import normal (named)
+            const reactNamedImport = reactImports?.find(i => i.type === 'named');
+            expect(reactNamedImport).toBeDefined();
+            expect(reactNamedImport?.specifiers).toContain("useMemo");
+            expect(reactNamedImport?.specifiers).toContain("Fragment");
+            expect(reactNamedImport?.specifiers).toContain("useState");
+            expect(reactNamedImport?.specifiers).toContain("useCallback");
+            expect(reactNamedImport?.specifiers).not.toContain("FC");
+
+            // Vérifier l'import de type (typeNamed)
+            const reactTypeImport = reactImports?.find(i => i.type === 'typeNamed');
+            expect(reactTypeImport).toBeDefined();
+            expect(reactTypeImport?.specifiers).toContain("FC");
+            expect(reactTypeImport?.specifiers.length).toBe(1);
+
+            // TODO: Améliorer le parser pour qu'il sépare correctement les imports de type des imports normaux
+            // dans un import multiligne.
+        });
+
         it("should handle import assertions", () => {
             const code = `
             import json from "./data.json"; // Le parser ne gère pas encore les assertions

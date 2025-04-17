@@ -258,8 +258,16 @@ class ImportParser {
               ? importedName
               : `${importedName} as ${localName}`;
 
-            if (isTypeImport) {
-              typeImports.push(specifierStr);
+            // Vérifier si c'est un import de type individuel (comme `type FC`)
+            const isIndividualTypeImport = specifier.importKind === "type";
+
+            if (isTypeImport || isIndividualTypeImport) {
+              // Si c'est un import de type individuel avec le préfixe "type ", extraire le nom réel
+              const cleanedSpecifierStr = specifierStr.startsWith('type ')
+                ? specifierStr.substring(5) // Enlever "type " du début
+                : specifierStr;
+
+              typeImports.push(cleanedSpecifierStr);
             } else {
               namedImports.push(specifierStr);
             }
@@ -324,7 +332,32 @@ class ImportParser {
         };
       }
 
-      if (namedImports.length > 0) {
+      // Si nous avons à la fois des imports nommés et des imports de type, retourner un tableau
+      if (namedImports.length > 0 && typeImports.length > 0) {
+        const result: ParsedImport[] = [];
+
+        result.push({
+          type: "named",
+          source,
+          specifiers: namedImports,
+          raw: importStmt,
+          groupName,
+          isPriority,
+          appSubfolder,
+        });
+
+        result.push({
+          type: "typeNamed",
+          source,
+          specifiers: typeImports,
+          raw: importStmt,
+          groupName,
+          isPriority,
+          appSubfolder,
+        });
+
+        return result;
+      } else if (namedImports.length > 0) {
         return {
           type: isTypeImport ? "typeNamed" : "named",
           source,
@@ -334,9 +367,7 @@ class ImportParser {
           isPriority,
           appSubfolder,
         };
-      }
-
-      if (typeImports.length > 0) {
+      } else if (typeImports.length > 0) {
         return {
           type: "typeNamed",
           source,
