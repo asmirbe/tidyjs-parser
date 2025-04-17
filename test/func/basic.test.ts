@@ -88,6 +88,50 @@ describe("Import Parser - General Cases", () => {
             expect(miscGroup?.imports.some((i) => i.specifiers.includes("useState"))).toBe(true);
         });
 
+        it("should ensure no duplicates in type imports and separate them from default imports", () => {
+            const code = `
+            import picto                          from '@core/resources/assets/images/yeap/picto-yeap.png';
+            import cn                             from 'classnames';
+            import {
+                type FC,
+                useMemo,
+                Fragment,
+                useState,
+                useCallback
+            }                                     from 'react';
+            `;
+
+            const result = parseImports(code, config);
+            console.log('🚀 ~ basic.test.ts:105 ~ it ~ result:', JSON.stringify(result, null, 2));
+            const miscGroup = result.groups.find((g) => g.name === "Misc");
+
+            expect(miscGroup).toBeDefined();
+
+            // Trouver les imports de React
+            const reactImports = miscGroup?.imports.filter(i => i.source === 'react');
+            expect(reactImports?.length).toBe(2);
+
+            // Vérifier l'import normal (named)
+            const reactNamedImport = reactImports?.find(i => i.type === 'named');
+            expect(reactNamedImport).toBeDefined();
+            expect(reactNamedImport?.specifiers).toContain("useMemo");
+            expect(reactNamedImport?.specifiers).toContain("Fragment");
+            expect(reactNamedImport?.specifiers).toContain("useState");
+            expect(reactNamedImport?.specifiers).toContain("useCallback");
+            expect(reactNamedImport?.specifiers).not.toContain("FC");
+
+            // Vérifier l'import de type (typeNamed)
+            const reactTypeImport = reactImports?.find(i => i.type === 'typeNamed');
+            expect(reactTypeImport).toBeDefined();
+            expect(reactTypeImport?.specifiers).toContain("FC");
+            expect(reactTypeImport?.specifiers.length).toBe(1);
+
+            // Vérifier qu'il n'y a pas de doublons entre les imports normaux et les imports de type
+            const allSpecifiers = reactImports?.flatMap(i => i.specifiers) || [];
+            const uniqueSpecifiers = [...new Set(allSpecifiers)];
+            expect(allSpecifiers.length).toBe(uniqueSpecifiers.length);
+        });
+
         it("should identify type imports in multi-line imports", () => {
             const code = `
             // DS
@@ -472,7 +516,6 @@ describe("Duplicate Default Imports", () => {
         const svgGroup = result.groups.find((g) => g.name === "SVGs");
 
         expect(svgGroup).toBeDefined();
-        console.log("svgGroup:", JSON.stringify(svgGroup?.imports, null, 2)); // Commenté pour ne pas polluer la sortie des tests
 
         expect(svgGroup?.imports).toHaveLength(4); // 3 uniques + 1 fusionné
 
