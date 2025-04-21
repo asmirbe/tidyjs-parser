@@ -5,9 +5,9 @@ import { DEFAULT_CONFIG } from "./types";
 
 import type { ParserConfig, ParserResult } from "./types";
 
-function parseImports(sourceCode: string, config: ParserConfig): ParserResult {
+async function parseImports(sourceCode: string, config: ParserConfig): Promise<ParserResult> {
   const parser = new ImportParser(config);
-  const { groups, originalImports, invalidImports } = parser.parse(sourceCode);
+  const { groups, originalImports, invalidImports } = await parser.parse(sourceCode);
   const subFolders = parser.getSubfolders();
 
   return { groups, originalImports, subFolders, invalidImports };
