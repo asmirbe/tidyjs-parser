@@ -1,4 +1,4 @@
-import { ParserConfig, ImportGroup, InvalidImport } from "./types";
+import { ParserConfig, Parse } from "./types";
 declare class ImportParser {
     private readonly config;
     private readonly typeOrder;
@@ -8,11 +8,8 @@ declare class ImportParser {
     private extractPatternsFromRegex;
     private findMatchIndexInRegex;
     constructor(config: ParserConfig);
-    parse(sourceCode: string): {
-        groups: ImportGroup[];
-        originalImports: string[];
-        invalidImports: InvalidImport[];
-    };
+    private findImportRange;
+    parse(sourceCode: string): Promise<Parse>;
     private parseImport;
     private isSourcePriority;
     private determineGroupName;

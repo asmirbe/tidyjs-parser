@@ -40,5 +40,8 @@
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.1",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "es-module-lexer": "^1.6.0"
   }
 }

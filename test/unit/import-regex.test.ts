@@ -3,7 +3,7 @@ import { ImportParser } from "../../src/parser";
 import { ParserConfig } from "../../src/types";
 
 describe('Import Parser RegExp Test', () => {
-    it('should correctly parse imports with RegExp pattern', () => {
+    it('should correctly parse imports with RegExp pattern', async () => {
         const config: ParserConfig = {
             importGroups: [
                 {
@@ -26,7 +26,7 @@ describe('Import Parser RegExp Test', () => {
         };
 
         const parser = new ImportParser(config);
-        const result = parser.parse(`
+        const result = await parser.parse(`
 import type { Test } from 'ReacT';
 import { useState }  from 'react';
 import type Test from 'react';
@@ -61,7 +61,7 @@ import { Button }  from 'antd';
         expect(miscImports).toContain("import { Button } from 'antd';");
     });
 
-    it('should correctly parse multi-line imports', () => {
+    it('should correctly parse multi-line imports', async () => {
         const config: ParserConfig = {
             importGroups: [
                 {
@@ -73,7 +73,7 @@ import { Button }  from 'antd';
         };
 
         const parser = new ImportParser(config);
-        const result = parser.parse(`
+        const result = await parser.parse(`
 import { test } from 
 '../path/to/module';
 

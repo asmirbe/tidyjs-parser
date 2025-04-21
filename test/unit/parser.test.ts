@@ -15,9 +15,10 @@ describe("ImportParser", () => {
         };
 
         describe("Single-line comments (//)", () => {
-            it("should ignore imports in // comments", () => {
+            it("should ignore imports in // comments", async () => {
                 const parser = new ImportParser(baseConfig);
-                const result = parser.parse(`
+                const result = await parser.parse(`
+                    // Default
                     import { Component } from '@angular/core';
                     // import { Injectable } from '@angular/core';
                     import { NgModule } from '@angular/core';
@@ -33,9 +34,9 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports[0].raw.trim()).toContain("NgModule");
             });
 
-            it("should detect imports after // comments", () => {
+            it("should detect imports after // comments", async () => {
                 const parser = new ImportParser(baseConfig);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     // A random comment
                     import { Component } from '@angular/core';
                 `);
@@ -46,9 +47,9 @@ describe("ImportParser", () => {
         });
 
         describe("Multi-line comments (/* */)", () => {
-            it("should ignore imports in /* */ comments", () => {
+            it("should ignore imports in /* */ comments", async () => {
                 const parser = new ImportParser(baseConfig);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     import { Component } from '@angular/core';
                     /* 
                     import { Injectable } from '@angular/core';
@@ -67,9 +68,9 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
             });
 
-            it("should detect imports before /* */ comments", () => {
+            it("should detect imports before /* */ comments", async () => {
                 const parser = new ImportParser(baseConfig);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     import { Component } from '@angular/core'; /* A comment */
                     import { Platform } from '@angular/core';
                 `);
@@ -84,9 +85,9 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
             });
 
-            it("should detect imports after /* */ comments", () => {
+            it("should detect imports after /* */ comments", async () => {
                 const parser = new ImportParser(baseConfig);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     /* A comment */ import { Component } from '@angular/core';
                     import { Platform } from '@angular/core';
                 `);
@@ -101,9 +102,9 @@ describe("ImportParser", () => {
                 expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
             });
 
-            it("should ignore partially commented imports", () => {
+            it("should ignore partially commented imports", async () => {
                 const parser = new ImportParser(baseConfig);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     import { Component } from '@angular/core';
                     /* import { Injectable */ from '@angular/core';
                     import { Platform } from '@angular/core';
@@ -122,7 +123,7 @@ describe("ImportParser", () => {
 
     describe("Group priorities", () => {
         describe("Priority based on pattern order in match", () => {
-            it("should prioritize imports according to their order in the match pattern", () => {
+            it("should prioritize imports according to their order in the match pattern", async () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -139,7 +140,7 @@ describe("ImportParser", () => {
                 };
 
                 const parser = new ImportParser(config);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     import { Route } from 'react-router';
                     import { render } from 'react-dom';
                     import React from 'react';
@@ -151,7 +152,7 @@ describe("ImportParser", () => {
                 expect(reactGroup!.imports.map(i => i.source)).toEqual(['react', 'react-dom', 'react-router']);
             });
 
-            it("should prioritize component imports according to their hierarchy", () => {
+            it("should prioritize component imports according to their hierarchy", async () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -168,7 +169,7 @@ describe("ImportParser", () => {
                 };
 
                 const parser = new ImportParser(config);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     import { Button } from '@components/ui/Button';
                     import { Card } from '@components/shared/Card';
                     import { Layout } from '@components/core/Layout';
@@ -185,7 +186,7 @@ describe("ImportParser", () => {
         });
 
         describe("Default group management", () => {
-            it("should use the group marked as isDefault", () => {
+            it("should use the group marked as isDefault", async () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -202,7 +203,7 @@ describe("ImportParser", () => {
                 };
 
                 const parser = new ImportParser(config);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     import React from 'react';
                     import { something } from './utils';
                     import Data from '@internal/data';
@@ -213,7 +214,7 @@ describe("ImportParser", () => {
                 expect(defaultGroup!.imports.map(i => i.source)).toEqual(['@internal/data', './utils']);
             });
 
-            it("should use 'Misc' as the default group name if no group is marked as isDefault", () => {
+            it("should use 'Misc' as the default group name if no group is marked as isDefault", async () => {
                 const config: ParserConfig = {
                     importGroups: [
                         {
@@ -225,7 +226,7 @@ describe("ImportParser", () => {
                 };
 
                 const parser = new ImportParser(config);
-                const result = parser.parse(`
+                const result = await parser.parse(`
                     import React from 'react';
                     import { something } from './utils';
                 `);
@@ -236,7 +237,7 @@ describe("ImportParser", () => {
             });
         });
 
-        it("should choose the group with the highest priority when multiple groups match", () => {
+        it("should choose the group with the highest priority when multiple groups match", async () => {
             const config: ParserConfig = {
                 importGroups: [
                     {
@@ -260,7 +261,7 @@ describe("ImportParser", () => {
             };
 
             const parser = new ImportParser(config);
-            const result = parser.parse(`
+            const result = await parser.parse(`
                 import React from 'react';
                 import { useState } from 'react';
                 import Data from '@user/data';
@@ -278,7 +279,7 @@ describe("ImportParser", () => {
             expect(othersGroup!.imports.map(i => i.source)).toEqual(['@user/data']);
         });
 
-        it("should use match specificity when priorities are equal", () => {
+        it("should use match specificity when priorities are equal", async () => {
             const config: ParserConfig = {
                 importGroups: [
                     {
@@ -302,7 +303,7 @@ describe("ImportParser", () => {
             };
 
             const parser = new ImportParser(config);
-            const result = parser.parse(`
+            const result = await parser.parse(`
                 import React from 'react';
                 import { Route } from 'react-router-dom';
                 import Data from '@user/data';
@@ -323,7 +324,7 @@ describe("ImportParser", () => {
             expect(othersGroup!.imports.map(i => i.source)).toEqual(['@user/data']);
         });
 
-        it("should use order when priorities are not defined", () => {
+        it("should use order when priorities are not defined", async () => {
             const config: ParserConfig = {
                 importGroups: [
                     {
@@ -345,7 +346,7 @@ describe("ImportParser", () => {
             };
 
             const parser = new ImportParser(config);
-            const result = parser.parse(`
+            const result = await parser.parse(`
                 import React from 'react';
                 import { useState } from 'react';
                 import Data from '@user/data';
@@ -379,12 +380,12 @@ describe("ImportParser", () => {
             ]
         };
 
-        it("should remove duplicate specifiers from same source imports", () => {
+        it("should remove duplicate specifiers from same source imports", async () => {
             const parser = new ImportParser(dedupConfig);
-            const result = parser.parse(`
-                import { Component } from '@angular/core';
-                import { Component, Injectable } from '@angular/core';
-                import { Injectable, NgModule } from '@angular/core';
+            const result = await parser.parse(`
+            import { Component } from '@angular/core';
+            import { Component, Injectable } from '@angular/core';
+            import { Injectable, NgModule } from '@angular/core';
             `);
 
             expect(result.groups.length).toBe(1);

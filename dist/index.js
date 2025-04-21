@@ -24,9 +24,9 @@ const errors_1 = require("./errors");
 Object.defineProperty(exports, "ImportParserError", { enumerable: true, get: function () { return errors_1.ImportParserError; } });
 const types_1 = require("./types");
 Object.defineProperty(exports, "DEFAULT_CONFIG", { enumerable: true, get: function () { return types_1.DEFAULT_CONFIG; } });
-function parseImports(sourceCode, config) {
+async function parseImports(sourceCode, config) {
     const parser = new parser_1.ImportParser(config);
-    const { groups, originalImports, invalidImports } = parser.parse(sourceCode);
+    const { groups, originalImports, invalidImports } = await parser.parse(sourceCode);
     const subFolders = parser.getSubfolders();
     return { groups, originalImports, subFolders, invalidImports };
 }

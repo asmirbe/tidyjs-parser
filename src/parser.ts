@@ -1,8 +1,9 @@
 import { parse } from "@babel/parser";
 import { validateAndFixImportWithBabel } from "./fixer";
 import { ImportParserError } from "./errors";
-import { ParserConfig, ParsedImport, ImportGroup, TypeOrder, SourcePatterns, InvalidImport, DEFAULT_CONFIG, ConfigImportGroup } from "./types";
+import { ParserConfig, ParsedImport, ImportGroup, TypeOrder, SourcePatterns, InvalidImport, DEFAULT_CONFIG, ConfigImportGroup, Parse, Range } from "./types";
 import { validateConfig } from "./validator";
+import { parse as lexerParse } from "es-module-lexer";
 
 class ImportParser {
   private readonly config: ParserConfig;
@@ -14,7 +15,7 @@ class ImportParser {
   private extractPatternsFromRegex(regexStr: string): string[] {
     const match = regexStr.match(/\(\s*([^)]+)\)/);
     if (!match?.[1]) return [];
-    return match[1].split('|').map(p => p.trim());
+    return match[1].split("|").map((p) => p.trim());
   }
 
   private findMatchIndexInRegex(source: string, regex: RegExp): number {
@@ -33,26 +34,22 @@ class ImportParser {
     const validation = validateConfig(config);
     if (!validation.isValid) {
       throw new ImportParserError(
-        `Configuration invalide:\n${validation.errors.map(
-          err => `  - [${err.field}] ${err.message}${err.suggestion ? `\n    Suggestion: ${err.suggestion}` : ''}`
-        ).join('\n')}`,
+        `Configuration invalide:\n${validation.errors.map((err) => `  - [${err.field}] ${err.message}${err.suggestion ? `\n    Suggestion: ${err.suggestion}` : ""}`).join("\n")}`,
         JSON.stringify(config, null, 2)
       );
     }
 
     if (validation.warnings.length > 0) {
       console.warn(
-        `Avertissements de configuration:\n${validation.warnings.map(
-          warn => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ''}`
-        ).join('\n')}`
+        `Avertissements de configuration:\n${validation.warnings.map((warn) => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ""}`).join("\n")}`
       );
     }
 
-    const importGroups = config.importGroups.map(group => {
+    const importGroups = config.importGroups.map((group) => {
       if (group.isDefault) {
         return {
           ...group,
-          isDefault: true
+          isDefault: true,
         };
       } else {
         if (!group.match) {
@@ -60,21 +57,21 @@ class ImportParser {
         }
         return {
           ...group,
-          isDefault: false
+          isDefault: false,
         };
       }
     }) as ConfigImportGroup[];
 
     const patterns = {
       ...DEFAULT_CONFIG.patterns,
-      ...(config.patterns)
+      ...config.patterns,
     };
 
     this.config = {
       ...config,
       importGroups,
       typeOrder: { ...(DEFAULT_CONFIG.typeOrder as TypeOrder), ...(config.typeOrder ?? {}) } as TypeOrder,
-      patterns
+      patterns,
     };
 
     this.subFolders = new Set<string>();
@@ -85,13 +82,110 @@ class ImportParser {
     this.patterns = this.config.patterns as SourcePatterns;
   }
 
-  public parse(sourceCode: string): { groups: ImportGroup[]; originalImports: string[]; invalidImports: InvalidImport[] } {
+  private async findImportRange(sourceText: string): Promise<Range | null> {
+    try {
+      const [imports] = await lexerParse(sourceText);
+
+      if (imports.length === 0) {
+        return { start: 0, end: 0 };
+      }
+
+      let firstImportStart = imports[0].ss;
+      let lastImportEnd = imports[0].se;
+
+      for (const imp of imports) {
+        if (imp.ss < firstImportStart) firstImportStart = imp.ss;
+        if (imp.se > lastImportEnd) lastImportEnd = imp.se;
+      }
+
+      const lineStartPositions = [0];
+      let currentPos = 0;
+
+      while (currentPos < sourceText.length) {
+        const nextLineBreak = sourceText.indexOf("\n", currentPos);
+        if (nextLineBreak === -1) break;
+        currentPos = nextLineBreak + 1;
+        lineStartPositions.push(currentPos);
+      }
+
+      let adjustedStartPosition = firstImportStart;
+      let importLine = 0;
+
+      for (let i = 1; i < lineStartPositions.length; i++) {
+        if (lineStartPositions[i] > firstImportStart) {
+          importLine = i - 1;
+          break;
+        }
+      }
+
+      while (importLine > 0) {
+        const prevLineStart = lineStartPositions[importLine - 1];
+        const prevLineEnd = lineStartPositions[importLine] - 1;
+        const prevLine = sourceText.substring(prevLineStart, prevLineEnd).trim();
+
+        if (prevLine === "" || prevLine.startsWith("//") || prevLine.includes("/*") || prevLine.includes("*/")) {
+          importLine--;
+          adjustedStartPosition = prevLineStart;
+        } else {
+          break;
+        }
+      }
+
+      let pos = adjustedStartPosition;
+      while (pos > 0) {
+        const commentStart = sourceText.lastIndexOf("/*", pos);
+        const commentEnd = sourceText.indexOf("*/", commentStart);
+
+        if (commentStart !== -1 && commentEnd !== -1 && commentEnd < firstImportStart) {
+          const textBetween = sourceText.substring(commentEnd + 2, firstImportStart).trim();
+          if (textBetween === "" || /^\s*$/.test(textBetween)) {
+            adjustedStartPosition = commentStart;
+            break;
+          }
+        }
+
+        if (commentStart === -1 || commentStart < 0) break;
+        pos = commentStart - 1;
+      }
+
+      return {
+        start: adjustedStartPosition,
+        end: lastImportEnd,
+      };
+    } catch (error) {
+      console.error("Error in findImportRange:", error);
+      return {
+        start: 0,
+        end: 0,
+        error: "There is an error in your imports. Please check the syntax.",
+      };
+    }
+  }
+
+  public async parse(sourceCode: string): Promise<Parse> {
     const originalImports: string[] = [];
     const invalidImports: InvalidImport[] = [];
     const potentialImportLines: string[] = [];
 
+    const lexerResult = await this.findImportRange(sourceCode);
+
+    const range = lexerResult || undefined;
+
+    if (range?.error) {
+      return { groups: [], originalImports, invalidImports, range };
+    }
+
+    if (range?.start === range?.end) {
+      return { groups: [], originalImports, invalidImports, range };
+    }
+
     try {
-      const ast = parse(sourceCode, {
+      // Extraire uniquement la section du code qui contient les imports selon range
+      const importSection = sourceCode.substring(range?.start || 0, range?.end || sourceCode.length);
+      console.log("🚀 ~ parser.ts:193", importSection);
+
+      // Parser uniquement cette section pour extraire les imports
+      const ast = parse(importSection, {
         sourceType: "module",
         plugins: ["typescript"],
         errorRecovery: true,
@@ -99,7 +193,8 @@ class ImportParser {
 
       ast.program.body.forEach((node) => {
         if (node.type === "ImportDeclaration") {
-          const importText = sourceCode.substring(node.start || 0, node.end || 0).trim();
+          // Récupérer le texte de l'import à partir de la section extraite
+          const importText = importSection.substring(node.start || 0, node.end || 0).trim();
           potentialImportLines.push(importText);
         }
       });
@@ -108,7 +203,7 @@ class ImportParser {
         raw: sourceCode,
         error: error instanceof Error ? error.message : String(error),
       });
-      return { groups: [], originalImports, invalidImports };
+      return { groups: [], originalImports, invalidImports, range };
     }
 
     let parsedImports: ParsedImport[] = [];
@@ -144,10 +239,8 @@ class ImportParser {
 
         for (const newImport of currentImports) {
           // Gérer spécifiquement les imports par défaut (et typeDefault) pour les fusionner immédiatement
-          if (newImport.type === 'default' || newImport.type === 'typeDefault') {
-            const existingImportIndex = parsedImports.findIndex(
-              p => (p.type === 'default' || p.type === 'typeDefault') && p.source === newImport.source
-            );
+          if (newImport.type === "default" || newImport.type === "typeDefault") {
+            const existingImportIndex = parsedImports.findIndex((p) => (p.type === "default" || p.type === "typeDefault") && p.source === newImport.source);
 
             if (existingImportIndex !== -1) {
               // Import par défaut existant trouvé pour cette source.
@@ -159,11 +252,10 @@ class ImportParser {
 
               // Si le nouvel import est 'typeDefault' et l'existant est 'default', promouvoir en 'typeDefault'.
               // Ou si l'existant est 'typeDefault', il le reste.
-              if (newImport.type === 'typeDefault' && existingImport.type === 'default') {
-                existingImport.type = 'typeDefault';
+              if (newImport.type === "typeDefault" && existingImport.type === "default") {
+                existingImport.type = "typeDefault";
               }
               // La mise à jour du 'raw' sera gérée par mergeImports plus tard si nécessaire.
-
             } else {
               // Aucun import par défaut existant pour cette source, ajouter le nouveau
               parsedImports.push(newImport);
@@ -186,7 +278,7 @@ class ImportParser {
 
     const groups = this.organizeImportsIntoGroups(parsedImports);
 
-    return { groups, originalImports, invalidImports };
+    return { groups, originalImports, invalidImports, range };
   }
 
   private parseImport(importStmt: string): ParsedImport | ParsedImport[] {
@@ -250,20 +342,16 @@ class ImportParser {
             defaultImports.push(`* as ${specifier.local.name}`);
             hasDefault = true;
           } else if (specifier.type === "ImportSpecifier") {
-            const importedName = specifier.imported.type === 'Identifier'
-              ? specifier.imported.name
-              : specifier.imported.value;
+            const importedName = specifier.imported.type === "Identifier" ? specifier.imported.name : specifier.imported.value;
             const localName = specifier.local.name;
-            const specifierStr = importedName === localName
-              ? importedName
-              : `${importedName} as ${localName}`;
+            const specifierStr = importedName === localName ? importedName : `${importedName} as ${localName}`;
 
             // Vérifier si c'est un import de type individuel (comme `type FC`)
             const isIndividualTypeImport = specifier.importKind === "type";
 
             if (isTypeImport || isIndividualTypeImport) {
               // Si c'est un import de type individuel avec le préfixe "type ", extraire le nom réel
-              const cleanedSpecifierStr = specifierStr.startsWith('type ')
+              const cleanedSpecifierStr = specifierStr.startsWith("type ")
                 ? specifierStr.substring(5) // Enlever "type " du début
                 : specifierStr;
 
@@ -287,7 +375,7 @@ class ImportParser {
             raw: importStmt,
             groupName,
             isPriority,
-            appSubfolder
+            appSubfolder,
           });
         }
 
@@ -299,7 +387,7 @@ class ImportParser {
             raw: importStmt,
             groupName,
             isPriority,
-            appSubfolder
+            appSubfolder,
           });
         }
 
@@ -311,7 +399,7 @@ class ImportParser {
             raw: importStmt,
             groupName,
             isPriority,
-            appSubfolder
+            appSubfolder,
           });
         }
 
@@ -390,7 +478,7 @@ class ImportParser {
   }
 
   private isSourcePriority(source: string): boolean {
-    const currentGroup = this.config.importGroups.find(group => {
+    const currentGroup = this.config.importGroups.find((group) => {
       if (!group.match) return false;
       return group.match.test(source);
     });
@@ -398,7 +486,7 @@ class ImportParser {
     if (!currentGroup?.match) return false;
 
     const regexStr = currentGroup.match.toString();
-    if (!regexStr.includes('(') || !regexStr.includes('|')) return false;
+    if (!regexStr.includes("(") || !regexStr.includes("|")) return false;
 
     // Utiliser findMatchIndexInRegex pour déterminer si la source correspond au premier pattern
     return this.findMatchIndexInRegex(source, currentGroup.match) === 0;
@@ -408,7 +496,7 @@ class ImportParser {
     const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
     const defaultGroupName = defaultGroup ? defaultGroup.name : this.defaultGroup;
 
-    const matchingGroups = this.config.importGroups.filter(group => {
+    const matchingGroups = this.config.importGroups.filter((group) => {
       if (group.isDefault) return false;
       if (!group.match) return false;
       return group.match.test(source);
@@ -423,7 +511,7 @@ class ImportParser {
     }
 
     const groupsByPriority = new Map<number | undefined, typeof matchingGroups>();
-    matchingGroups.forEach(group => {
+    matchingGroups.forEach((group) => {
       const priority = group.priority;
       if (!groupsByPriority.has(priority)) {
         groupsByPriority.set(priority, []);
@@ -440,8 +528,8 @@ class ImportParser {
 
       if (highestPriorityGroups.length > 1) {
         return highestPriorityGroups.sort((a, b) => {
-          const aPattern = a.match?.toString().replace(/[/^$|]/g, '') ?? '';
-          const bPattern = b.match?.toString().replace(/[/^$|]/g, '') ?? '';
+          const aPattern = a.match?.toString().replace(/[/^$|]/g, "") ?? "";
+          const bPattern = b.match?.toString().replace(/[/^$|]/g, "") ?? "";
 
           if (aPattern.length !== bPattern.length) {
             return bPattern.length - aPattern.length;
@@ -462,8 +550,8 @@ class ImportParser {
       if (a.isDefault && !b.isDefault) return 1;
       if (!a.isDefault && b.isDefault) return -1;
 
-      const aPattern = a.match?.toString().replace(/[/^$|]/g, '') ?? '';
-      const bPattern = b.match?.toString().replace(/[/^$|]/g, '') ?? '';
+      const aPattern = a.match?.toString().replace(/[/^$|]/g, "") ?? "";
+      const bPattern = b.match?.toString().replace(/[/^$|]/g, "") ?? "";
 
       if (aPattern.length !== bPattern.length) {
         return bPattern.length - aPattern.length;
@@ -503,29 +591,27 @@ class ImportParser {
     let cleaned = cleanedLines.join(isMultiline ? "\n" : " ").trim();
 
     // Gestion des quotes
-    if (formatting?.quoteStyle === 'double') {
+    if (formatting?.quoteStyle === "double") {
       cleaned = cleaned.replace(/'/g, '"');
-    } else if (formatting?.quoteStyle === 'single') {
+    } else if (formatting?.quoteStyle === "single") {
       cleaned = cleaned.replace(/"/g, "'");
     }
 
     // Gestion des point-virgules
     if (formatting?.semicolons === false) {
-      cleaned = cleaned.replace(/;+$/, '');
+      cleaned = cleaned.replace(/;+$/, "");
     } else if (!cleaned.endsWith(";")) {
       cleaned += ";";
     }
 
     // Gestion de l'indentation multiligne
     if (isMultiline && formatting?.multilineIndentation) {
-      const indent = formatting.multilineIndentation === 'tab'
-        ? '\t'
-        : ' '.repeat(Number(formatting.multilineIndentation));
+      const indent = formatting.multilineIndentation === "tab" ? "\t" : " ".repeat(Number(formatting.multilineIndentation));
 
       cleaned = cleaned
-        .split('\n')
-        .map((line, i) => i > 0 ? indent + line : line)
-        .join('\n');
+        .split("\n")
+        .map((line, i) => (i > 0 ? indent + line : line))
+        .join("\n");
     }
 
     return cleaned;

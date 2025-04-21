@@ -21,6 +21,16 @@ export type ParserConfig = {
     patterns?: SourcePatterns;
     formatting?: FormattingOptions;
 };
+export type Parse = {
+    groups: ImportGroup[];
+    originalImports: string[];
+    invalidImports: InvalidImport[];
+    range?: {
+        start: number;
+        end: number;
+        error?: string;
+    };
+};
 export type ParsedImport = {
     type: ImportType;
     source: ImportSource;
@@ -54,4 +64,9 @@ export type SourcePatterns = {
     subfolderPattern?: RegExp;
 };
 export declare const DEFAULT_CONFIG: Partial<ParserConfig>;
+export type Range = {
+    start: number;
+    end: number;
+    error?: string;
+};
 //# sourceMappingURL=types.d.ts.map

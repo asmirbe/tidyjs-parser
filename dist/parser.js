@@ -6,12 +6,13 @@ const fixer_1 = require("./fixer");
 const errors_1 = require("./errors");
 const types_1 = require("./types");
 const validator_1 = require("./validator");
+const es_module_lexer_1 = require("es-module-lexer");
 class ImportParser {
     extractPatternsFromRegex(regexStr) {
         const match = regexStr.match(/\(\s*([^)]+)\)/);
         if (!match?.[1])
             return [];
-        return match[1].split('|').map(p => p.trim());
+        return match[1].split("|").map((p) => p.trim());
     }
     findMatchIndexInRegex(source, regex) {
         const regexStr = regex.toString();
@@ -26,16 +27,16 @@ class ImportParser {
     constructor(config) {
         const validation = (0, validator_1.validateConfig)(config);
         if (!validation.isValid) {
-            throw new errors_1.ImportParserError(`Configuration invalide:\n${validation.errors.map(err => `  - [${err.field}] ${err.message}${err.suggestion ? `\n    Suggestion: ${err.suggestion}` : ''}`).join('\n')}`, JSON.stringify(config, null, 2));
+            throw new errors_1.ImportParserError(`Configuration invalide:\n${validation.errors.map((err) => `  - [${err.field}] ${err.message}${err.suggestion ? `\n    Suggestion: ${err.suggestion}` : ""}`).join("\n")}`, JSON.stringify(config, null, 2));
         }
         if (validation.warnings.length > 0) {
-            console.warn(`Avertissements de configuration:\n${validation.warnings.map(warn => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ''}`).join('\n')}`);
+            console.warn(`Avertissements de configuration:\n${validation.warnings.map((warn) => `  - [${warn.field}] ${warn.message}${warn.suggestion ? `\n    Suggestion: ${warn.suggestion}` : ""}`).join("\n")}`);
         }
-        const importGroups = config.importGroups.map(group => {
+        const importGroups = config.importGroups.map((group) => {
             if (group.isDefault) {
                 return {
                     ...group,
-                    isDefault: true
+                    isDefault: true,
                 };
             }
             else {
@@ -44,19 +45,19 @@ class ImportParser {
                 }
                 return {
                     ...group,
-                    isDefault: false
+                    isDefault: false,
                 };
             }
         });
         const patterns = {
             ...types_1.DEFAULT_CONFIG.patterns,
-            ...(config.patterns)
+            ...config.patterns,
         };
         this.config = {
             ...config,
             importGroups,
             typeOrder: { ...types_1.DEFAULT_CONFIG.typeOrder, ...(config.typeOrder ?? {}) },
-            patterns
+            patterns,
         };
         this.subFolders = new Set();
         const defaultGroup = config.importGroups.find((g) => g.isDefault);
@@ -64,19 +65,104 @@ class ImportParser {
         this.typeOrder = this.config.typeOrder;
         this.patterns = this.config.patterns;
     }
-    parse(sourceCode) {
+    async findImportRange(sourceText) {
+        try {
+            const [imports] = await (0, es_module_lexer_1.parse)(sourceText);
+            if (imports.length === 0) {
+                return { start: 0, end: 0 };
+            }
+            let firstImportStart = imports[0].ss;
+            let lastImportEnd = imports[0].se;
+            for (const imp of imports) {
+                if (imp.ss < firstImportStart)
+                    firstImportStart = imp.ss;
+                if (imp.se > lastImportEnd)
+                    lastImportEnd = imp.se;
+            }
+            const lineStartPositions = [0];
+            let currentPos = 0;
+            while (currentPos < sourceText.length) {
+                const nextLineBreak = sourceText.indexOf("\n", currentPos);
+                if (nextLineBreak === -1)
+                    break;
+                currentPos = nextLineBreak + 1;
+                lineStartPositions.push(currentPos);
+            }
+            let adjustedStartPosition = firstImportStart;
+            let importLine = 0;
+            for (let i = 1; i < lineStartPositions.length; i++) {
+                if (lineStartPositions[i] > firstImportStart) {
+                    importLine = i - 1;
+                    break;
+                }
+            }
+            while (importLine > 0) {
+                const prevLineStart = lineStartPositions[importLine - 1];
+                const prevLineEnd = lineStartPositions[importLine] - 1;
+                const prevLine = sourceText.substring(prevLineStart, prevLineEnd).trim();
+                if (prevLine === "" || prevLine.startsWith("//") || prevLine.includes("/*") || prevLine.includes("*/")) {
+                    importLine--;
+                    adjustedStartPosition = prevLineStart;
+                }
+                else {
+                    break;
+                }
+            }
+            let pos = adjustedStartPosition;
+            while (pos > 0) {
+                const commentStart = sourceText.lastIndexOf("/*", pos);
+                const commentEnd = sourceText.indexOf("*/", commentStart);
+                if (commentStart !== -1 && commentEnd !== -1 && commentEnd < firstImportStart) {
+                    const textBetween = sourceText.substring(commentEnd + 2, firstImportStart).trim();
+                    if (textBetween === "" || /^\s*$/.test(textBetween)) {
+                        adjustedStartPosition = commentStart;
+                        break;
+                    }
+                }
+                if (commentStart === -1 || commentStart < 0)
+                    break;
+                pos = commentStart - 1;
+            }
+            return {
+                start: adjustedStartPosition,
+                end: lastImportEnd,
+            };
+        }
+        catch (error) {
+            console.error("Error in findImportRange:", error);
+            return {
+                start: 0,
+                end: 0,
+                error: "There is an error in your imports. Please check the syntax.",
+            };
+        }
+    }
+    async parse(sourceCode) {
         const originalImports = [];
         const invalidImports = [];
         const potentialImportLines = [];
+        const lexerResult = await this.findImportRange(sourceCode);
+        const range = lexerResult || undefined;
+        if (range?.error) {
+            return { groups: [], originalImports, invalidImports, range };
+        }
+        if (range?.start === range?.end) {
+            return { groups: [], originalImports, invalidImports, range };
+        }
         try {
-            const ast = (0, parser_1.parse)(sourceCode, {
+            // Extraire uniquement la section du code qui contient les imports selon range
+            const importSection = sourceCode.substring(range?.start || 0, range?.end || sourceCode.length);
+            console.log("🚀 ~ parser.ts:193", importSection);
+            // Parser uniquement cette section pour extraire les imports
+            const ast = (0, parser_1.parse)(importSection, {
                 sourceType: "module",
                 plugins: ["typescript"],
                 errorRecovery: true,
             });
             ast.program.body.forEach((node) => {
                 if (node.type === "ImportDeclaration") {
-                    const importText = sourceCode.substring(node.start || 0, node.end || 0).trim();
+                    // Récupérer le texte de l'import à partir de la section extraite
+                    const importText = importSection.substring(node.start || 0, node.end || 0).trim();
                     potentialImportLines.push(importText);
                 }
             });
@@ -86,7 +172,7 @@ class ImportParser {
                 raw: sourceCode,
                 error: error instanceof Error ? error.message : String(error),
             });
-            return { groups: [], originalImports, invalidImports };
+            return { groups: [], originalImports, invalidImports, range };
         }
         let parsedImports = [];
         for (const importStmt of potentialImportLines) {
@@ -112,8 +198,8 @@ class ImportParser {
                 const currentImports = Array.isArray(imports) ? imports : [imports];
                 for (const newImport of currentImports) {
                     // Gérer spécifiquement les imports par défaut (et typeDefault) pour les fusionner immédiatement
-                    if (newImport.type === 'default' || newImport.type === 'typeDefault') {
-                        const existingImportIndex = parsedImports.findIndex(p => (p.type === 'default' || p.type === 'typeDefault') && p.source === newImport.source);
+                    if (newImport.type === "default" || newImport.type === "typeDefault") {
+                        const existingImportIndex = parsedImports.findIndex((p) => (p.type === "default" || p.type === "typeDefault") && p.source === newImport.source);
                         if (existingImportIndex !== -1) {
                             // Import par défaut existant trouvé pour cette source.
                             // Remplacer le spécificateur existant par le nouveau (le dernier rencontré).
@@ -123,8 +209,8 @@ class ImportParser {
                             existingImport.raw = newImport.raw; // Utiliser aussi le raw du dernier import rencontré
                             // Si le nouvel import est 'typeDefault' et l'existant est 'default', promouvoir en 'typeDefault'.
                             // Ou si l'existant est 'typeDefault', il le reste.
-                            if (newImport.type === 'typeDefault' && existingImport.type === 'default') {
-                                existingImport.type = 'typeDefault';
+                            if (newImport.type === "typeDefault" && existingImport.type === "default") {
+                                existingImport.type = "typeDefault";
                             }
                             // La mise à jour du 'raw' sera gérée par mergeImports plus tard si nécessaire.
                         }
@@ -149,7 +235,7 @@ class ImportParser {
         }
         parsedImports = this.mergeImports(parsedImports);
         const groups = this.organizeImportsIntoGroups(parsedImports);
-        return { groups, originalImports, invalidImports };
+        return { groups, originalImports, invalidImports, range };
     }
     parseImport(importStmt) {
         try {
@@ -206,18 +292,14 @@ class ImportParser {
                         hasDefault = true;
                     }
                     else if (specifier.type === "ImportSpecifier") {
-                        const importedName = specifier.imported.type === 'Identifier'
-                            ? specifier.imported.name
-                            : specifier.imported.value;
+                        const importedName = specifier.imported.type === "Identifier" ? specifier.imported.name : specifier.imported.value;
                         const localName = specifier.local.name;
-                        const specifierStr = importedName === localName
-                            ? importedName
-                            : `${importedName} as ${localName}`;
+                        const specifierStr = importedName === localName ? importedName : `${importedName} as ${localName}`;
                         // Vérifier si c'est un import de type individuel (comme `type FC`)
                         const isIndividualTypeImport = specifier.importKind === "type";
                         if (isTypeImport || isIndividualTypeImport) {
                             // Si c'est un import de type individuel avec le préfixe "type ", extraire le nom réel
-                            const cleanedSpecifierStr = specifierStr.startsWith('type ')
+                            const cleanedSpecifierStr = specifierStr.startsWith("type ")
                                 ? specifierStr.substring(5) // Enlever "type " du début
                                 : specifierStr;
                             typeImports.push(cleanedSpecifierStr);
@@ -239,7 +321,7 @@ class ImportParser {
                         raw: importStmt,
                         groupName,
                         isPriority,
-                        appSubfolder
+                        appSubfolder,
                     });
                 }
                 if (namedImports.length > 0) {
@@ -250,7 +332,7 @@ class ImportParser {
                         raw: importStmt,
                         groupName,
                         isPriority,
-                        appSubfolder
+                        appSubfolder,
                     });
                 }
                 if (typeImports.length > 0) {
@@ -261,7 +343,7 @@ class ImportParser {
                         raw: importStmt,
                         groupName,
                         isPriority,
-                        appSubfolder
+                        appSubfolder,
                     });
                 }
                 if (result.length > 0) {
@@ -334,7 +416,7 @@ class ImportParser {
         }
     }
     isSourcePriority(source) {
-        const currentGroup = this.config.importGroups.find(group => {
+        const currentGroup = this.config.importGroups.find((group) => {
             if (!group.match)
                 return false;
             return group.match.test(source);
@@ -342,7 +424,7 @@ class ImportParser {
         if (!currentGroup?.match)
             return false;
         const regexStr = currentGroup.match.toString();
-        if (!regexStr.includes('(') || !regexStr.includes('|'))
+        if (!regexStr.includes("(") || !regexStr.includes("|"))
             return false;
         // Utiliser findMatchIndexInRegex pour déterminer si la source correspond au premier pattern
         return this.findMatchIndexInRegex(source, currentGroup.match) === 0;
@@ -350,7 +432,7 @@ class ImportParser {
     determineGroupName(source) {
         const defaultGroup = this.config.importGroups.find((group) => group.isDefault);
         const defaultGroupName = defaultGroup ? defaultGroup.name : this.defaultGroup;
-        const matchingGroups = this.config.importGroups.filter(group => {
+        const matchingGroups = this.config.importGroups.filter((group) => {
             if (group.isDefault)
                 return false;
             if (!group.match)
@@ -364,7 +446,7 @@ class ImportParser {
             return matchingGroups[0].name;
         }
         const groupsByPriority = new Map();
-        matchingGroups.forEach(group => {
+        matchingGroups.forEach((group) => {
             const priority = group.priority;
             if (!groupsByPriority.has(priority)) {
                 groupsByPriority.set(priority, []);
@@ -378,8 +460,8 @@ class ImportParser {
             const [, highestPriorityGroups] = priorityGroups[0];
             if (highestPriorityGroups.length > 1) {
                 return highestPriorityGroups.sort((a, b) => {
-                    const aPattern = a.match?.toString().replace(/[/^$|]/g, '') ?? '';
-                    const bPattern = b.match?.toString().replace(/[/^$|]/g, '') ?? '';
+                    const aPattern = a.match?.toString().replace(/[/^$|]/g, "") ?? "";
+                    const bPattern = b.match?.toString().replace(/[/^$|]/g, "") ?? "";
                     if (aPattern.length !== bPattern.length) {
                         return bPattern.length - aPattern.length;
                     }
@@ -396,8 +478,8 @@ class ImportParser {
                 return 1;
             if (!a.isDefault && b.isDefault)
                 return -1;
-            const aPattern = a.match?.toString().replace(/[/^$|]/g, '') ?? '';
-            const bPattern = b.match?.toString().replace(/[/^$|]/g, '') ?? '';
+            const aPattern = a.match?.toString().replace(/[/^$|]/g, "") ?? "";
+            const bPattern = b.match?.toString().replace(/[/^$|]/g, "") ?? "";
             if (aPattern.length !== bPattern.length) {
                 return bPattern.length - aPattern.length;
             }
@@ -426,28 +508,26 @@ class ImportParser {
         }
         let cleaned = cleanedLines.join(isMultiline ? "\n" : " ").trim();
         // Gestion des quotes
-        if (formatting?.quoteStyle === 'double') {
+        if (formatting?.quoteStyle === "double") {
             cleaned = cleaned.replace(/'/g, '"');
         }
-        else if (formatting?.quoteStyle === 'single') {
+        else if (formatting?.quoteStyle === "single") {
             cleaned = cleaned.replace(/"/g, "'");
         }
         // Gestion des point-virgules
         if (formatting?.semicolons === false) {
-            cleaned = cleaned.replace(/;+$/, '');
+            cleaned = cleaned.replace(/;+$/, "");
         }
         else if (!cleaned.endsWith(";")) {
             cleaned += ";";
         }
         // Gestion de l'indentation multiligne
         if (isMultiline && formatting?.multilineIndentation) {
-            const indent = formatting.multilineIndentation === 'tab'
-                ? '\t'
-                : ' '.repeat(Number(formatting.multilineIndentation));
+            const indent = formatting.multilineIndentation === "tab" ? "\t" : " ".repeat(Number(formatting.multilineIndentation));
             cleaned = cleaned
-                .split('\n')
-                .map((line, i) => i > 0 ? indent + line : line)
-                .join('\n');
+                .split("\n")
+                .map((line, i) => (i > 0 ? indent + line : line))
+                .join("\n");
         }
         return cleaned;
     }

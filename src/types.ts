@@ -28,6 +28,13 @@ export type ParserConfig = {
   formatting?: FormattingOptions;
 };
 
+export type Parse = {
+  groups: ImportGroup[];
+  originalImports: string[];
+  invalidImports: InvalidImport[];
+  range?: { start: number; end: number; error?: string };
+}
+
 export type ParsedImport = {
   type: ImportType;
   source: ImportSource;
@@ -81,3 +88,6 @@ export const DEFAULT_CONFIG: Partial<ParserConfig> = {
   },
   patterns: {},
 };
+
+
+export type Range = { start: number; end: number; error?: string }
