@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { validateConfig } from "../../src/validator";
 import { ParserConfig } from "../../src/types";
 import { describe, expect, test } from "@jest/globals";
