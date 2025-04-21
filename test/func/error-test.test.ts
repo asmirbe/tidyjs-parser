@@ -38,8 +38,8 @@ describe('Import Parser - Error Cases', () => {
         ];
 
         errorCases.forEach(testCase => {
-            it(`devrait détecter : ${testCase.name}`, () => {
-                const result = parseImports(testCase.code, config);
+            it(`devrait détecter : ${testCase.name}`, async () => {
+                const result = await parseImports(testCase.code, config);
                 expect(result.invalidImports).toBeDefined();
                 expect(result.invalidImports?.length).toBeGreaterThan(0);
             });
@@ -66,8 +66,8 @@ describe('Import Parser - Error Cases', () => {
         ];
 
         validCases.forEach(testCase => {
-            it(`devrait accepter : ${testCase.name}`, () => {
-                const result = parseImports(testCase.code, config);
+            it(`devrait accepter : ${testCase.name}`, async () => {
+                const result = await parseImports(testCase.code, config);
                 expect(result.invalidImports).toBeDefined();
                 expect(result.invalidImports?.length).toBe(0);
             });
@@ -75,9 +75,9 @@ describe('Import Parser - Error Cases', () => {
     });
 
     describe('Duplicate Handling', () => {
-        it('devrait gérer correctement les imports en double', () => {
+        it('devrait gérer correctement les imports en double', async () => {
             const code = "import { useState, useState } from 'react';";
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const miscGroup = result.groups.find(g => g.name === 'Misc');
             expect(miscGroup).toBeDefined();
             expect(miscGroup?.imports[0].specifiers).toEqual(['useState']);
@@ -85,19 +85,19 @@ describe('Import Parser - Error Cases', () => {
     });
 
     describe('Type Imports', () => {
-        it('devrait gérer correctement les imports de type', () => {
+        it('devrait gérer correctement les imports de type', async () => {
             const code = `
         import type { FC, ComponentType } from 'react';
         import { useState, type ChangeEvent } from 'react';
       `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.invalidImports).toBeDefined();
             expect(result.invalidImports?.length).toBe(0);
 
             const reactImports = result.groups.find(g => g.imports.some(i => i.source === 'react'));
             expect(reactImports).toBeDefined();
-            expect(reactImports?.imports.some(i => i.raw.includes('type'))).toBeTruthy();
+            expect(reactImports?.imports.some(i => i.originalmports.includes('type'))).toBeTruthy();
         });
     });
 });

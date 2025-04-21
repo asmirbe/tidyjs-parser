@@ -9,6 +9,8 @@ declare class ImportParser {
     private findMatchIndexInRegex;
     constructor(config: ParserConfig);
     private findImportRange;
+    private detectGroupComments;
+    private sanitizeGroupName;
     parse(sourceCode: string): Promise<Parse>;
     private parseImport;
     private isSourcePriority;
@@ -20,6 +22,8 @@ declare class ImportParser {
     private organizeImportsIntoGroups;
     private sortImportsWithinGroup;
     getSubfolders(): string[];
+    generateFormattedCode(parse: Parse): string;
+    private generateStandardFormattedCode;
 }
 export { ImportParser };
 //# sourceMappingURL=parser.d.ts.map

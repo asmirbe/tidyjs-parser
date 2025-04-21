@@ -1,5 +1,5 @@
 export declare class ImportParserError extends Error {
-    raw: string;
-    constructor(message: string, raw: string);
+    originalmports: string;
+    constructor(message: string, originalmports: string);
 }
 //# sourceMappingURL=errors.d.ts.map

@@ -18,12 +18,12 @@ function fixDuplicateSpecifiers(importStmt) {
         }
         const [, prefix, specifiersBlock, suffix] = importParts;
         const specifiersContent = specifiersBlock.substring(1, specifiersBlock.length - 1);
-        const rawSpecifiers = specifiersContent
+        const originalmportsSpecifiers = specifiersContent
             .split(/\s*,\s*/)
             .map(s => s.trim())
             .filter(s => s.length > 0);
         const uniqueSpecs = new Set();
-        for (const spec of rawSpecifiers) {
+        for (const spec of originalmportsSpecifiers) {
             const isType = spec.startsWith("type ");
             const specWithoutType = isType ? spec.substring(5).trim() : spec;
             let normalizedSpec;

@@ -2,9 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ImportParserError = void 0;
 class ImportParserError extends Error {
-    constructor(message, raw) {
+    constructor(message, originalmports) {
         super(message);
-        this.raw = raw;
+        this.originalmports = originalmports;
         this.name = 'ImportParserError';
     }
 }

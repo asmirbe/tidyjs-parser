@@ -125,7 +125,7 @@ The analysis result contains the following information:
       ]
     }
   ],
-  originalImports: [
+  raw: [
     'import React from \'react\';',
     'import { useState } from \'react\';',
     'import { Button } from \'@components/ui\';',

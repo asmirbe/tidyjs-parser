@@ -30,8 +30,8 @@ describe("ImportParser", () => {
                     '@angular/core'
                 ]);
                 // The parser merges imports with the same source
-                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
-                expect(defaultGroup.imports[0].raw.trim()).toContain("NgModule");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("NgModule");
             });
 
             it("should detect imports after // comments", async () => {
@@ -64,8 +64,8 @@ describe("ImportParser", () => {
                     '@angular/core'
                 ]);
                 // The parser merges imports with the same source
-                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
-                expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("Platform");
             });
 
             it("should detect imports before /* */ comments", async () => {
@@ -81,8 +81,8 @@ describe("ImportParser", () => {
                     '@angular/core'
                 ]);
                 // The parser merges imports with the same source
-                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
-                expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("Platform");
             });
 
             it("should detect imports after /* */ comments", async () => {
@@ -98,8 +98,8 @@ describe("ImportParser", () => {
                     '@angular/core'
                 ]);
                 // The parser merges imports with the same source
-                expect(defaultGroup.imports[0].raw.trim()).toContain("Component");
-                expect(defaultGroup.imports[0].raw.trim()).toContain("Platform");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("Component");
+                expect(defaultGroup.imports[0].originalmports.trim()).toContain("Platform");
             });
 
             it("should ignore partially commented imports", async () => {
@@ -115,8 +115,8 @@ describe("ImportParser", () => {
                     '@angular/core'
                 ]);
                 // The parser merges imports with the same source
-                expect(result.groups[0].imports[0].raw.trim()).toContain("Component");
-                expect(result.groups[0].imports[0].raw.trim()).toContain("Platform");
+                expect(result.groups[0].imports[0].originalmports.trim()).toContain("Component");
+                expect(result.groups[0].imports[0].originalmports.trim()).toContain("Platform");
             });
         });
     });
@@ -383,15 +383,17 @@ describe("ImportParser", () => {
         it("should remove duplicate specifiers from same source imports", async () => {
             const parser = new ImportParser(dedupConfig);
             const result = await parser.parse(`
+            // Default
             import { Component } from '@angular/core';
             import { Component, Injectable } from '@angular/core';
             import { Injectable, NgModule } from '@angular/core';
             `);
+            console.log('🚀 ~ parser.test.ts:391 ~ it ~ result:', result);
 
             expect(result.groups.length).toBe(1);
             const defaultGroup = result.groups[0];
             expect(defaultGroup.imports.length).toBe(1);
-            const importStatement = defaultGroup.imports[0].raw.trim();
+            const importStatement = defaultGroup.imports[0].originalmports.trim();
 
             expect(importStatement).toContain("Component");
             expect(importStatement).toContain("Injectable");

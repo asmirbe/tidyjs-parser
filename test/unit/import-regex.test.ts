@@ -40,7 +40,7 @@ import { Button }  from 'antd';
         const reactGroup = result.groups.find(g => g.name === "React");
         expect(reactGroup).toBeDefined();
         expect(reactGroup?.imports.length).toBe(4);
-        const reactImports = reactGroup?.imports.map(imp => imp.raw);
+        const reactImports = reactGroup?.imports.map(imp => imp.originalmports);
         expect(reactImports).toContain("import React from 'React';");
         expect(reactImports).toContain("import { useState } from 'react';");
         expect(reactImports).toContain("import type { Test } from 'ReacT';");
@@ -50,13 +50,13 @@ import { Button }  from 'antd';
         const dsGroup = result.groups.find(g => g.name === "DS");
         expect(dsGroup).toBeDefined();
         expect(dsGroup?.imports.length).toBe(1);
-        expect(dsGroup?.imports[0].raw).toBe("import { YpButton } from 'ds';");
+        expect(dsGroup?.imports[0].originalmports).toBe("import { YpButton } from 'ds';");
 
         // Check that other imports are in Miscellaneous group
         const miscGroup = result.groups.find(g => g.name === "Miscellaneous");
         expect(miscGroup).toBeDefined();
         expect(miscGroup?.imports.length).toBe(2); // style.css and antd
-        const miscImports = miscGroup?.imports.map(imp => imp.raw);
+        const miscImports = miscGroup?.imports.map(imp => imp.originalmports);
         expect(miscImports).toContain("import 'style.css';");
         expect(miscImports).toContain("import { Button } from 'antd';");
     });
@@ -84,7 +84,7 @@ import { another } from
         expect(miscGroup).toBeDefined();
         expect(miscGroup?.imports.length).toBe(2);
 
-        const imports = miscGroup?.imports.map(imp => imp.raw);
+        const imports = miscGroup?.imports.map(imp => imp.originalmports);
         expect(imports).toContain("import { test } from '../path/to/module';");
         expect(imports).toContain("import { another } from '../another/path';");
     });

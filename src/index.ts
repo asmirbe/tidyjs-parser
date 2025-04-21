@@ -7,10 +7,10 @@ import type { ParserConfig, ParserResult } from "./types";
 
 async function parseImports(sourceCode: string, config: ParserConfig): Promise<ParserResult> {
   const parser = new ImportParser(config);
-  const { groups, originalImports, invalidImports } = await parser.parse(sourceCode);
+  const { groups, originalmports, invalidImports } = await parser.parse(sourceCode);
   const subFolders = parser.getSubfolders();
 
-  return { groups, originalImports, subFolders, invalidImports };
+  return { groups, originalmports, subFolders, invalidImports };
 }
 
 export {

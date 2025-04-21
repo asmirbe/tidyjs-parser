@@ -30,19 +30,19 @@ export type ParserConfig = {
 
 export type Parse = {
   groups: ImportGroup[];
-  originalImports: string[];
+  originalmports: string[];
   invalidImports: InvalidImport[];
-  range?: { start: number; end: number; error?: string };
+  range?: Range;
+  foundGroups?: FoundGroup[]; // Nouveaux groupes trouvés dans les commentaires
 }
 
-export type ParsedImport = {
-  type: ImportType;
-  source: ImportSource;
-  specifiers: ImportSpecifier[];
-  raw: string;
-  groupName: string | null;
-  isPriority: boolean;
-  appSubfolder: string | null;
+export type FoundGroup = {
+  name: string;           // Nom du groupe trouvé dans le commentaire
+  commentStart: number;   // Position de début du commentaire
+  commentEnd: number;     // Position de fin du commentaire
+  importsStart: number;   // Position de début du premier import du groupe
+  importsEnd: number;     // Position de fin du dernier import du groupe
+  suggestedGroupName?: string; // Groupe suggéré selon la configuration
 }
 
 export type ImportGroup = {
@@ -52,13 +52,23 @@ export type ImportGroup = {
 }
 
 export type InvalidImport = {
-  raw: string;
+  originalmports: string;
   error: string;
+}
+
+export type ParsedImport = {
+  type: ImportType;
+  source: ImportSource;
+  specifiers: ImportSpecifier[];
+  originalmports: string;
+  groupName: string | null;
+  isPriority: boolean;
+  appSubfolder: string | null;
 }
 
 export type ParserResult = {
   groups: ImportGroup[];
-  originalImports: string[];
+  originalmports: string[];
   subFolders: string[];
   invalidImports?: InvalidImport[];
 }

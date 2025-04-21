@@ -137,23 +137,132 @@ class ImportParser {
             };
         }
     }
+    detectGroupComments(sourceCode) {
+        const foundGroups = [];
+        const lines = sourceCode.split("\n");
+        let currentCommentLine = -1;
+        let currentCommentContent = "";
+        let currentCommentStartPos = -1;
+        let currentCommentEndPos = -1;
+        let pendingCommentGroup = false;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            const lineStartPos = sourceCode.indexOf(lines[i], i > 0 ? sourceCode.indexOf(lines[i - 1]) + lines[i - 1].length + 1 : 0);
+            if (line.startsWith("//")) {
+                const commentContent = line.substring(2).trim();
+                if (commentContent && !commentContent.startsWith("eslint") && !commentContent.includes("prettier")) {
+                    currentCommentLine = i;
+                    currentCommentContent = commentContent;
+                    currentCommentStartPos = lineStartPos;
+                    currentCommentEndPos = lineStartPos + line.length;
+                    pendingCommentGroup = true;
+                }
+            }
+            else if (line.startsWith("/*")) {
+                const endCommentIndex = line.indexOf("*/");
+                if (endCommentIndex !== -1) {
+                    const commentContent = line.substring(2, endCommentIndex).trim();
+                    if (commentContent && !commentContent.startsWith("eslint") && !commentContent.includes("prettier")) {
+                        currentCommentLine = i;
+                        currentCommentContent = commentContent;
+                        currentCommentStartPos = lineStartPos;
+                        currentCommentEndPos = lineStartPos + endCommentIndex + 2;
+                        pendingCommentGroup = true;
+                    }
+                }
+                else {
+                    let commentContent = line.substring(2).trim();
+                    let endLine = i;
+                    for (let j = i + 1; j < lines.length; j++) {
+                        const nextLine = lines[j].trim();
+                        const endCommentIdx = nextLine.indexOf("*/");
+                        if (endCommentIdx !== -1) {
+                            commentContent += " " + nextLine.substring(0, endCommentIdx).trim();
+                            endLine = j;
+                            break;
+                        }
+                        else {
+                            commentContent += " " + nextLine.trim();
+                        }
+                    }
+                    if (commentContent && !commentContent.startsWith("eslint") && !commentContent.includes("prettier")) {
+                        currentCommentLine = i;
+                        currentCommentContent = commentContent;
+                        currentCommentStartPos = lineStartPos;
+                        const endLineStartPos = sourceCode.indexOf(lines[endLine]);
+                        const endLineEndPos = endLineStartPos + lines[endLine].indexOf("*/") + 2;
+                        currentCommentEndPos = endLineEndPos;
+                        i = endLine;
+                        pendingCommentGroup = true;
+                    }
+                }
+            }
+            else if (line.startsWith("import ") && pendingCommentGroup && currentCommentLine !== -1) {
+                let lastImportEndPos = lineStartPos + line.length;
+                for (let j = i + 1; j < lines.length; j++) {
+                    const nextLine = lines[j].trim();
+                    if (nextLine.startsWith("import ")) {
+                        const nextLineStartPos = sourceCode.indexOf(lines[j]);
+                        lastImportEndPos = nextLineStartPos + lines[j].length;
+                    }
+                    else if (nextLine === "" || nextLine.startsWith("//") || nextLine.startsWith("/*")) {
+                        break;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                const groupName = this.sanitizeGroupName(currentCommentContent);
+                const importStartPos = lineStartPos;
+                foundGroups.push({
+                    name: groupName,
+                    commentStart: currentCommentStartPos,
+                    commentEnd: currentCommentEndPos,
+                    importsStart: importStartPos,
+                    importsEnd: lastImportEndPos,
+                    suggestedGroupName: undefined,
+                });
+                currentCommentLine = -1;
+                currentCommentContent = "";
+                pendingCommentGroup = false;
+            }
+            else if (line !== "") {
+                if (!line.startsWith("*")) {
+                    currentCommentLine = -1;
+                    currentCommentContent = "";
+                    pendingCommentGroup = false;
+                }
+            }
+        }
+        return foundGroups;
+    }
+    sanitizeGroupName(comment) {
+        let name = comment
+            .split(/\s+/)
+            .map((part) => part.replace(/^\*+/, ""))
+            .join(" ")
+            .trim();
+        const groupLabelMatch = name.match(/^(group|groupe|section|imports)[\s:]+(.+)$/i);
+        if (groupLabelMatch) {
+            name = groupLabelMatch[2].trim();
+        }
+        return name;
+    }
     async parse(sourceCode) {
-        const originalImports = [];
+        const foundGroups = this.detectGroupComments(sourceCode);
+        const originalmports = [];
         const invalidImports = [];
         const potentialImportLines = [];
         const lexerResult = await this.findImportRange(sourceCode);
         const range = lexerResult || undefined;
         if (range?.error) {
-            return { groups: [], originalImports, invalidImports, range };
+            return { groups: [], originalmports, invalidImports, range };
         }
         if (range?.start === range?.end) {
-            return { groups: [], originalImports, invalidImports, range };
+            return { groups: [], originalmports, invalidImports, range };
         }
         try {
-            // Extraire uniquement la section du code qui contient les imports selon range
             const importSection = sourceCode.substring(range?.start || 0, range?.end || sourceCode.length);
-            console.log("🚀 ~ parser.ts:193", importSection);
-            // Parser uniquement cette section pour extraire les imports
             const ast = (0, parser_1.parse)(importSection, {
                 sourceType: "module",
                 plugins: ["typescript"],
@@ -161,7 +270,6 @@ class ImportParser {
             });
             ast.program.body.forEach((node) => {
                 if (node.type === "ImportDeclaration") {
-                    // Récupérer le texte de l'import à partir de la section extraite
                     const importText = importSection.substring(node.start || 0, node.end || 0).trim();
                     potentialImportLines.push(importText);
                 }
@@ -169,15 +277,15 @@ class ImportParser {
         }
         catch (error) {
             invalidImports.push({
-                raw: sourceCode,
+                originalmports: sourceCode,
                 error: error instanceof Error ? error.message : String(error),
             });
-            return { groups: [], originalImports, invalidImports, range };
+            return { groups: [], originalmports, invalidImports, range };
         }
         let parsedImports = [];
         for (const importStmt of potentialImportLines) {
             try {
-                originalImports.push(importStmt);
+                originalmports.push(importStmt);
                 const { fixed, isValid, error } = (0, fixer_1.validateAndFixImportWithBabel)(importStmt);
                 if (!isValid) {
                     let errorMessage = error ?? "Erreur de syntaxe non spécifiée";
@@ -188,7 +296,7 @@ class ImportParser {
                         }
                     }
                     invalidImports.push({
-                        raw: importStmt,
+                        originalmports: importStmt,
                         error: errorMessage,
                     });
                     continue;
@@ -197,45 +305,57 @@ class ImportParser {
                 const imports = this.parseImport(normalizedImport);
                 const currentImports = Array.isArray(imports) ? imports : [imports];
                 for (const newImport of currentImports) {
-                    // Gérer spécifiquement les imports par défaut (et typeDefault) pour les fusionner immédiatement
                     if (newImport.type === "default" || newImport.type === "typeDefault") {
                         const existingImportIndex = parsedImports.findIndex((p) => (p.type === "default" || p.type === "typeDefault") && p.source === newImport.source);
                         if (existingImportIndex !== -1) {
-                            // Import par défaut existant trouvé pour cette source.
-                            // Remplacer le spécificateur existant par le nouveau (le dernier rencontré).
-                            // Il ne peut y avoir qu'un seul spécificateur pour un import par défaut.
                             const existingImport = parsedImports[existingImportIndex];
-                            existingImport.specifiers = [...newImport.specifiers]; // Prend le dernier spécificateur
-                            existingImport.raw = newImport.raw; // Utiliser aussi le raw du dernier import rencontré
-                            // Si le nouvel import est 'typeDefault' et l'existant est 'default', promouvoir en 'typeDefault'.
-                            // Ou si l'existant est 'typeDefault', il le reste.
+                            existingImport.specifiers = [...newImport.specifiers];
+                            existingImport.originalmports = newImport.originalmports;
                             if (newImport.type === "typeDefault" && existingImport.type === "default") {
                                 existingImport.type = "typeDefault";
                             }
-                            // La mise à jour du 'raw' sera gérée par mergeImports plus tard si nécessaire.
                         }
                         else {
-                            // Aucun import par défaut existant pour cette source, ajouter le nouveau
                             parsedImports.push(newImport);
                         }
                     }
                     else {
-                        // Pour les autres types (named, sideEffect, etc.), les ajouter directement.
-                        // mergeImports s'occupera de fusionner les imports nommés plus tard.
                         parsedImports.push(newImport);
                     }
                 }
             }
             catch (error) {
                 invalidImports.push({
-                    raw: importStmt,
+                    originalmports: importStmt,
                     error: error instanceof Error ? error.message : String(error),
                 });
             }
         }
         parsedImports = this.mergeImports(parsedImports);
+        for (const foundGroup of foundGroups) {
+            const groupImportSources = parsedImports
+                .filter((imp) => {
+                const importPosition = sourceCode.indexOf(imp.originalmports);
+                return importPosition >= foundGroup.importsStart && importPosition <= foundGroup.importsEnd;
+            })
+                .map((imp) => imp.source);
+            const groupCounts = new Map();
+            for (const source of groupImportSources) {
+                const suggestedGroup = this.determineGroupName(source);
+                groupCounts.set(suggestedGroup, (groupCounts.get(suggestedGroup) || 0) + 1);
+            }
+            let maxCount = 0;
+            let suggestedGroup = this.defaultGroup;
+            for (const [group, count] of groupCounts.entries()) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    suggestedGroup = group;
+                }
+            }
+            foundGroup.suggestedGroupName = suggestedGroup;
+        }
         const groups = this.organizeImportsIntoGroups(parsedImports);
-        return { groups, originalImports, invalidImports, range };
+        return { groups, originalmports, invalidImports, range, foundGroups };
     }
     parseImport(importStmt) {
         try {
@@ -269,7 +389,7 @@ class ImportParser {
                     type: "sideEffect",
                     source,
                     specifiers: [],
-                    raw: importStmt,
+                    originalmports: importStmt,
                     groupName,
                     isPriority,
                     appSubfolder,
@@ -287,7 +407,6 @@ class ImportParser {
                         hasDefault = true;
                     }
                     else if (specifier.type === "ImportNamespaceSpecifier") {
-                        // For namespace imports, we keep the full "* as name" syntax
                         defaultImports.push(`* as ${specifier.local.name}`);
                         hasDefault = true;
                     }
@@ -295,13 +414,9 @@ class ImportParser {
                         const importedName = specifier.imported.type === "Identifier" ? specifier.imported.name : specifier.imported.value;
                         const localName = specifier.local.name;
                         const specifierStr = importedName === localName ? importedName : `${importedName} as ${localName}`;
-                        // Vérifier si c'est un import de type individuel (comme `type FC`)
                         const isIndividualTypeImport = specifier.importKind === "type";
                         if (isTypeImport || isIndividualTypeImport) {
-                            // Si c'est un import de type individuel avec le préfixe "type ", extraire le nom réel
-                            const cleanedSpecifierStr = specifierStr.startsWith("type ")
-                                ? specifierStr.substring(5) // Enlever "type " du début
-                                : specifierStr;
+                            const cleanedSpecifierStr = specifierStr.startsWith("type ") ? specifierStr.substring(5) : specifierStr;
                             typeImports.push(cleanedSpecifierStr);
                         }
                         else {
@@ -318,7 +433,7 @@ class ImportParser {
                         type: isTypeImport ? "typeDefault" : "default",
                         source,
                         specifiers: defaultImports,
-                        raw: importStmt,
+                        originalmports: importStmt,
                         groupName,
                         isPriority,
                         appSubfolder,
@@ -329,7 +444,7 @@ class ImportParser {
                         type: isTypeImport ? "typeNamed" : "named",
                         source,
                         specifiers: namedImports,
-                        raw: importStmt,
+                        originalmports: importStmt,
                         groupName,
                         isPriority,
                         appSubfolder,
@@ -340,7 +455,7 @@ class ImportParser {
                         type: "typeNamed",
                         source,
                         specifiers: typeImports,
-                        raw: importStmt,
+                        originalmports: importStmt,
                         groupName,
                         isPriority,
                         appSubfolder,
@@ -355,20 +470,19 @@ class ImportParser {
                     type: isTypeImport ? "typeDefault" : "default",
                     source,
                     specifiers: defaultImports,
-                    raw: importStmt,
+                    originalmports: importStmt,
                     groupName,
                     isPriority,
                     appSubfolder,
                 };
             }
-            // Si nous avons à la fois des imports nommés et des imports de type, retourner un tableau
             if (namedImports.length > 0 && typeImports.length > 0) {
                 const result = [];
                 result.push({
                     type: "named",
                     source,
                     specifiers: namedImports,
-                    raw: importStmt,
+                    originalmports: importStmt,
                     groupName,
                     isPriority,
                     appSubfolder,
@@ -377,7 +491,7 @@ class ImportParser {
                     type: "typeNamed",
                     source,
                     specifiers: typeImports,
-                    raw: importStmt,
+                    originalmports: importStmt,
                     groupName,
                     isPriority,
                     appSubfolder,
@@ -389,7 +503,7 @@ class ImportParser {
                     type: isTypeImport ? "typeNamed" : "named",
                     source,
                     specifiers: namedImports,
-                    raw: importStmt,
+                    originalmports: importStmt,
                     groupName,
                     isPriority,
                     appSubfolder,
@@ -400,7 +514,7 @@ class ImportParser {
                     type: "typeNamed",
                     source,
                     specifiers: typeImports,
-                    raw: importStmt,
+                    originalmports: importStmt,
                     groupName,
                     isPriority,
                     appSubfolder,
@@ -426,7 +540,6 @@ class ImportParser {
         const regexStr = currentGroup.match.toString();
         if (!regexStr.includes("(") || !regexStr.includes("|"))
             return false;
-        // Utiliser findMatchIndexInRegex pour déterminer si la source correspond au premier pattern
         return this.findMatchIndexInRegex(source, currentGroup.match) === 0;
     }
     determineGroupName(source) {
@@ -498,30 +611,25 @@ class ImportParser {
             if (line.trim().startsWith("//")) {
                 continue;
             }
-            // Supprimer les commentaires /* */ en ligne
             let cleanedLine = line.replace(/\/\*.*?\*\//g, "").trim();
-            // Supprimer les commentaires // en ligne
             cleanedLine = cleanedLine.replace(/\/\/.*$/, "").trim();
             if (cleanedLine) {
                 cleanedLines.push(cleanedLine);
             }
         }
         let cleaned = cleanedLines.join(isMultiline ? "\n" : " ").trim();
-        // Gestion des quotes
         if (formatting?.quoteStyle === "double") {
             cleaned = cleaned.replace(/'/g, '"');
         }
         else if (formatting?.quoteStyle === "single") {
             cleaned = cleaned.replace(/"/g, "'");
         }
-        // Gestion des point-virgules
         if (formatting?.semicolons === false) {
             cleaned = cleaned.replace(/;+$/, "");
         }
         else if (!cleaned.endsWith(";")) {
             cleaned += ";";
         }
-        // Gestion de l'indentation multiligne
         if (isMultiline && formatting?.multilineIndentation) {
             const indent = formatting.multilineIndentation === "tab" ? "\t" : " ".repeat(Number(formatting.multilineIndentation));
             cleaned = cleaned
@@ -534,21 +642,21 @@ class ImportParser {
     mergeImports(imports) {
         const mergedImportsMap = new Map();
         for (const importObj of imports) {
-            const cleanedRaw = this.cleanImportStatement(importObj.raw);
+            const cleanedOriginalmports = this.cleanImportStatement(importObj.originalmports);
             const key = `${importObj.type}:${importObj.source}`;
             if (mergedImportsMap.has(key)) {
                 const existingImport = mergedImportsMap.get(key);
                 const specifiersSet = new Set([...existingImport.specifiers, ...importObj.specifiers]);
                 existingImport.specifiers = Array.from(specifiersSet).sort();
-                if (cleanedRaw.length > this.cleanImportStatement(existingImport.raw).length) {
-                    existingImport.raw = cleanedRaw;
+                if (cleanedOriginalmports.length > this.cleanImportStatement(existingImport.originalmports).length) {
+                    existingImport.originalmports = cleanedOriginalmports;
                 }
                 this.validateSpecifiersConsistency(existingImport);
             }
             else {
                 const newImport = {
                     ...importObj,
-                    raw: cleanedRaw,
+                    originalmports: cleanedOriginalmports,
                     specifiers: [...importObj.specifiers].sort(),
                 };
                 this.validateSpecifiersConsistency(newImport);
@@ -562,15 +670,15 @@ class ImportParser {
             const prefix = importObj.type === "typeNamed" ? "import type " : "import ";
             const specifiersStr = `{ ${importObj.specifiers.join(", ")} }`;
             const reconstructed = `${prefix}${specifiersStr} from '${importObj.source}';`;
-            if (!this.areImportsSemanticallyEquivalent(importObj.raw, reconstructed)) {
-                importObj.raw = reconstructed;
+            if (!this.areImportsSemanticallyEquivalent(importObj.originalmports, reconstructed)) {
+                importObj.originalmports = reconstructed;
             }
         }
         else if (importObj.type === "default" || importObj.type === "typeDefault") {
             const prefix = importObj.type === "typeDefault" ? "import type " : "import ";
             const reconstructed = `${prefix}${importObj.specifiers[0]} from '${importObj.source}';`;
-            if (!this.areImportsSemanticallyEquivalent(importObj.raw, reconstructed)) {
-                importObj.raw = reconstructed;
+            if (!this.areImportsSemanticallyEquivalent(importObj.originalmports, reconstructed)) {
+                importObj.originalmports = reconstructed;
             }
         }
     }
@@ -707,6 +815,47 @@ class ImportParser {
     }
     getSubfolders() {
         return Array.from(this.subFolders).sort();
+    }
+    generateFormattedCode(parse) {
+        if (!parse.foundGroups || parse.foundGroups.length === 0) {
+            return this.generateStandardFormattedCode(parse);
+        }
+        let result = "";
+        const sortedFoundGroups = [...parse.foundGroups].sort((a, b) => a.commentStart - b.commentStart);
+        for (const foundGroup of sortedFoundGroups) {
+            const commentText = foundGroup.name;
+            result += `// ${commentText}\n`;
+            const suggestedGroupName = foundGroup.suggestedGroupName || this.defaultGroup;
+            const groupImports = parse.groups.find((g) => g.name === suggestedGroupName)?.imports || [];
+            if (groupImports.length > 0) {
+                for (const importObj of groupImports) {
+                    result += importObj.originalmports + "\n";
+                }
+            }
+            result += "\n";
+        }
+        const processedGroups = new Set(sortedFoundGroups.map((g) => g.suggestedGroupName));
+        for (const group of parse.groups) {
+            if (!processedGroups.has(group.name) && group.imports.length > 0) {
+                result += `// ${group.name}\n`;
+                for (const importObj of group.imports) {
+                    result += importObj.originalmports + "\n";
+                }
+                result += "\n";
+            }
+        }
+        return result.trim();
+    }
+    generateStandardFormattedCode(parse) {
+        let result = "";
+        for (const group of parse.groups) {
+            result += `// ${group.name}\n`;
+            for (const importObj of group.imports) {
+                result += importObj.originalmports + "\n";
+            }
+            result += "\n";
+        }
+        return result.trim();
     }
 }
 exports.ImportParser = ImportParser;

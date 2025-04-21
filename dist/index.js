@@ -26,8 +26,8 @@ const types_1 = require("./types");
 Object.defineProperty(exports, "DEFAULT_CONFIG", { enumerable: true, get: function () { return types_1.DEFAULT_CONFIG; } });
 async function parseImports(sourceCode, config) {
     const parser = new parser_1.ImportParser(config);
-    const { groups, originalImports, invalidImports } = await parser.parse(sourceCode);
+    const { groups, originalmports, invalidImports } = await parser.parse(sourceCode);
     const subFolders = parser.getSubfolders();
-    return { groups, originalImports, subFolders, invalidImports };
+    return { groups, originalmports, subFolders, invalidImports };
 }
 __exportStar(require("./types"), exports);

@@ -26,7 +26,7 @@ export const config: ParserConfig = {
 };
 
 describe("Import Parser - General Cases", () => {
-    it("should handle imports with comments correctly", () => {
+    it("should handle imports with comments correctly", async () => {
         const code = `
             // React Import
             import { useState } from 'react'; // State hook
@@ -34,7 +34,7 @@ describe("Import Parser - General Cases", () => {
             import { Button } from '@components/Button';
         `;
 
-        const result = parseImports(code, config);
+        const result = await parseImports(code, config);
 
         const miscGroup = result.groups.find((g) => g.name === "Misc");
         const componentsGroup = result.groups.find((g) => g.name === "Components");
@@ -47,25 +47,25 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Complex Relative Paths", () => {
-        it("should handle multiple parent directory references (../../)", () => {
+        it("should handle multiple parent directory references (../../)", async () => {
             const code = `
             import { helper } from '../../../utils/helpers';
             import { config } from '../../config';
         `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups[0].imports).toHaveLength(2);
             expect(result.groups[0].imports[0].source).toBe("../../../utils/helpers");
             expect(result.groups[0].imports[1].source).toBe("../../config");
         });
 
-        it("should handle nested relative paths (./)", () => {
+        it("should handle nested relative paths (./)", async () => {
             const code = `
             import { util1 } from './utils/util1';
             import { util2 } from './nested/folder/utils/util2';
         `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups[0].imports).toHaveLength(2);
             // Le parser ne trie pas les imports par chemin, donc vérifier simplement que les deux sources sont présentes
             expect(result.groups[0].imports.map((i) => i.source)).toEqual(expect.arrayContaining(["./utils/util1", "./nested/folder/utils/util2"]));
@@ -73,13 +73,13 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("TypeScript Specific Imports", () => {
-        it("should handle type imports", () => {
+        it("should handle type imports", async () => {
             const code = `
             import type { ButtonProps } from '@components/Button';
             import { useState } from 'react'; // Le parser ne gère pas encore 'type' inline
         `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const componentsGroup = result.groups.find((g) => g.name === "Components");
             const miscGroup = result.groups.find((g) => g.name === "Misc");
 
@@ -88,7 +88,7 @@ describe("Import Parser - General Cases", () => {
             expect(miscGroup?.imports.some((i) => i.specifiers.includes("useState"))).toBe(true);
         });
 
-        it("should ensure no duplicates in type imports and separate them from default imports", () => {
+        it("should ensure no duplicates in type imports and separate them from default imports", async () => {
             const code = `
             import picto                          from '@core/resources/assets/images/yeap/picto-yeap.png';
             import cn                             from 'classnames';
@@ -101,7 +101,7 @@ describe("Import Parser - General Cases", () => {
             }                                     from 'react';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             console.log('🚀 ~ basic.test.ts:105 ~ it ~ result:', JSON.stringify(result, null, 2));
             const miscGroup = result.groups.find((g) => g.name === "Misc");
 
@@ -132,7 +132,7 @@ describe("Import Parser - General Cases", () => {
             expect(allSpecifiers.length).toBe(uniqueSpecifiers.length);
         });
 
-        it("should identify type imports in multi-line imports", () => {
+        it("should identify type imports in multi-line imports", async () => {
             const code = `
             // DS
             import picto                          from '@core/resources/assets/images/yeap/picto-yeap.png';
@@ -152,7 +152,7 @@ describe("Import Parser - General Cases", () => {
             import { useTable }                   from '@library/utils/table';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const miscGroup = result.groups.find((g) => g.name === "Misc");
 
             expect(miscGroup).toBeDefined();
@@ -180,40 +180,40 @@ describe("Import Parser - General Cases", () => {
             // dans un import multiligne.
         });
 
-        it("should handle import assertions", () => {
+        it("should handle import assertions", async () => {
             const code = `
             import json from "./data.json"; // Le parser ne gère pas encore les assertions
             import data from "./data.csv";
         `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups[0].imports).toHaveLength(2);
             expect(result.groups[0].imports.map((i) => i.source)).toEqual(expect.arrayContaining(["./data.json", "./data.csv"]));
         });
     });
 
     describe("Error Cases", () => {
-        it("should detect invalid import syntax", () => {
+        it("should detect invalid import syntax", async () => {
             const code = `
             import { useState } from 'react'
             import { Button from '@components/Button';
         `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.invalidImports).toHaveLength(1);
             expect(result.invalidImports?.[0].error).toBeDefined();
         });
 
-        it("should handle non-existent modules", () => {
+        it("should handle non-existent modules", async () => {
             const code = `import { missing } from 'non-existent-module';`;
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             // Le parser ne vérifie pas l'existence des modules
             expect(result.groups[0].imports).toHaveLength(1);
         });
 
-        it("should handle non-matching group match", () => {
+        it("should handle non-matching group match", async () => {
             const code = `import { unknown } from '@unknown/package';`;
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups[0].name).toBe("Misc");
             // Verify it's the default group by checking config
             const defaultGroup = config.importGroups.find((g) => g.isDefault);
@@ -222,35 +222,35 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Performance Cases", () => {
-        it("should handle files with many imports", () => {
+        it("should handle files with many imports", async () => {
             const imports = Array.from({ length: 50 }, (_, i) => `import { util${i} } from '@utils/util${i}';`).join("\n");
 
-            const result = parseImports(imports, config);
+            const result = await parseImports(imports, config);
             expect(result.groups[0].imports).toHaveLength(50);
         });
 
-        it("should handle very long import paths", () => {
+        it("should handle very long import paths", async () => {
             const longPath = "@" + "very/".repeat(20) + "long/path";
             const code = `import { something } from '${longPath}';`;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups[0].imports[0].source).toBe(longPath);
         });
     });
 
     describe("Alternative Configurations", () => {
-        it("should handle empty groups", () => {
+        it("should handle empty groups", async () => {
             const minimalConfig: ParserConfig = {
                 importGroups: [{ name: "Default", order: 0, isDefault: true }],
                 patterns: DEFAULT_CONFIG.patterns,
             };
 
             const code = `import { useState } from 'react';`;
-            const result = parseImports(code, minimalConfig);
+            const result = await parseImports(code, minimalConfig);
             expect(result.groups).toHaveLength(1);
         });
 
-        it("should handle complex match patterns", () => {
+        it("should handle complex match patterns", async () => {
             const complexConfig: ParserConfig = {
                 importGroups: [
                     {
@@ -267,11 +267,11 @@ describe("Import Parser - General Cases", () => {
             import { data } from 'data.json';
         `;
 
-            const result = parseImports(code, complexConfig);
+            const result = await parseImports(code, complexConfig);
             expect(result.groups[0].imports).toHaveLength(2);
         });
 
-        it("should respect custom ordering", () => {
+        it("should respect custom ordering", async () => {
             const customOrderConfig: ParserConfig = {
                 importGroups: [
                     { name: "Utils", match: /^@utils/, order: 2 },
@@ -287,14 +287,14 @@ describe("Import Parser - General Cases", () => {
             import { useState } from 'react';
         `;
 
-            const result = parseImports(code, customOrderConfig);
+            const result = await parseImports(code, customOrderConfig);
             expect(result.groups[0].name).toBe("Misc");
             expect(result.groups[1].name).toBe("Components");
             expect(result.groups[2].name).toBe("Utils");
         });
     });
 
-    it("should group imports correctly according to configuration", () => {
+    it("should group imports correctly according to configuration", async () => {
         const code = `
             import fs from 'fs';
             import path from 'path';
@@ -303,7 +303,7 @@ describe("Import Parser - General Cases", () => {
             import { Footer } from '@components/Footer';
         `;
 
-        const result = parseImports(code, config);
+        const result = await parseImports(code, config);
         const groups = result.groups;
 
         expect(groups).toHaveLength(2);
@@ -315,14 +315,14 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Group Priority", () => {
-        it("should prioritize imports according to their match pattern order", () => {
+        it("should prioritize imports according to their match pattern order", async () => {
             const code = `
                 import { useState } from 'react';
                 import { Button } from '@components/Button';
                 import { formatDate } from '@utils/date';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const groups = result.groups;
 
             expect(groups).toHaveLength(3);
@@ -331,7 +331,7 @@ describe("Import Parser - General Cases", () => {
             expect(groups[2].name).toBe("Utils");
         });
 
-        it("should handle imports with comments correctly", () => {
+        it("should handle imports with comments correctly", async () => {
             const code = `
                 // React Import
                 import { useState } from 'react'; // State hook
@@ -339,20 +339,20 @@ describe("Import Parser - General Cases", () => {
                 import { Button } from '@components/Button';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups.length).toBeGreaterThan(0);
             expect(result.invalidImports?.length).toBe(0);
         });
     });
 
     describe("Alias Imports", () => {
-        it("should handle imports with aliases", () => {
+        it("should handle imports with aliases", async () => {
             const code = `
                 import { Button as CustomButton } from '@components/Button';
                 import { useState as useLocalState } from 'react';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const componentsGroup = result.groups.find((g) => g.name === "Components");
             const miscGroup = result.groups.find((g) => g.name === "Misc");
 
@@ -364,7 +364,7 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Multi-line Imports", () => {
-        it("should parse multi-line imports correctly", () => {
+        it("should parse multi-line imports correctly", async () => {
             const code = `
                 import {
                     useState,
@@ -373,7 +373,7 @@ describe("Import Parser - General Cases", () => {
                 } from 'react';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const miscGroup = result.groups.find((g) => g.name === "Misc");
 
             expect(miscGroup).toBeDefined();
@@ -382,13 +382,13 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Default and Named Imports", () => {
-        it("should handle default and named imports", () => {
+        it("should handle default and named imports", async () => {
             const code = `
                 import React, { useState } from 'react';
                 import Button, { ButtonProps } from '@components/Button';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
 
             const miscGroup = result.groups.find((g) => g.name === "Misc");
             const componentsGroup = result.groups.find((g) => g.name === "Components");
@@ -412,9 +412,9 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Namespace Imports", () => {
-        it("should handle namespace imports", () => {
+        it("should handle namespace imports", async () => {
             const code = `import * as ReactDom from 'react';`;
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const miscGroup = result.groups.find((g) => g.name === "Misc");
 
             expect(miscGroup).toBeDefined();
@@ -425,14 +425,14 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Import Sorting", () => {
-        it("should sort imports according to group order", () => {
+        it("should sort imports according to group order", async () => {
             const code = `
                 import { formatDate } from '@utils/date';
                 import { useState } from 'react';
                 import { Button } from '@components/Button';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             const groups = result.groups;
 
             expect(groups[0].name).toBe("Misc");
@@ -440,13 +440,13 @@ describe("Import Parser - General Cases", () => {
             expect(groups[2].name).toBe("Utils");
         });
 
-        it("should sort imports alphabetically within each group", () => {
+        it("should sort imports alphabetically within each group", async () => {
             const code = `
                 import { useEffect, useState, useCallback } from 'react';
                 import { Card, Button, Alert } from '@components/ui';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
 
             const miscGroup = result.groups.find((g) => g.name === "Misc");
             const componentsGroup = result.groups.find((g) => g.name === "Components");
@@ -457,9 +457,9 @@ describe("Import Parser - General Cases", () => {
     });
 
     describe("Edge Cases", () => {
-        it("should handle imports without specifiers", () => {
+        it("should handle imports without specifiers", async () => {
             const code = `import 'styles/global.css';`;
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
 
             expect(result.groups.length).toBeGreaterThan(0);
             expect(result.invalidImports?.length).toBe(0);
@@ -467,19 +467,19 @@ describe("Import Parser - General Cases", () => {
             expect(result.groups[0].imports[0].specifiers).toEqual([]);
         });
 
-        it("should handle imports with dynamic expressions", () => {
+        it("should handle imports with dynamic expressions", async () => {
             const code = `
                 import { useState } from 'react';
                 const moduleName = 'utils';
                 const dynamicImport = import(\`@\${moduleName}/helpers\`);
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups.length).toBeGreaterThan(0);
             expect(result.groups[0].name).toBe("Misc");
         });
 
-        it("should handle consecutive imports with different types", () => {
+        it("should handle consecutive imports with different types", async () => {
             const code = `
                 import Button from '@components/Button';
                 import { Card } from '@components/Card';
@@ -487,7 +487,7 @@ describe("Import Parser - General Cases", () => {
                 import 'styles/global.css';
             `;
 
-            const result = parseImports(code, config);
+            const result = await parseImports(code, config);
             expect(result.groups.length).toBe(3);
             expect(result.groups.find((g) => g.name === "Components")?.imports.length).toBe(2);
         });
@@ -495,7 +495,7 @@ describe("Import Parser - General Cases", () => {
 });
 
 describe("Duplicate Default Imports", () => {
-    it("should merge multiple default imports from the same source", () => {
+    it("should merge multiple default imports from the same source", async () => {
         const code = `
                 import BulletinAnnulationSVG from '@app/dossier/utils/bulletin/bulletin-annulation.svg?react';
                 import BulletinAnnuleIcon from '@app/dossier/utils/bulletin/bulletin-annule.svg?react';
@@ -512,7 +512,7 @@ describe("Duplicate Default Imports", () => {
             patterns: DEFAULT_CONFIG.patterns,
         };
 
-        const result = parseImports(code, svgConfig);
+        const result = await parseImports(code, svgConfig);
         const svgGroup = result.groups.find((g) => g.name === "SVGs");
 
         expect(svgGroup).toBeDefined();
