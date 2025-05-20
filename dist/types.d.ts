@@ -12,6 +12,21 @@ export type ConfigImportGroup = {
 export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "sideEffect";
 export type ImportSource = string;
 export type ImportSpecifier = string;
+export type SpecifierType = 'default' | 'namespace' | 'named' | 'typeDefault' | 'typeNamespace' | 'typeNamed';
+export type EnhancedImportSpecifier = {
+    type: SpecifierType;
+    name: string;
+    alias?: string;
+};
+export type EnhancedParsedImport = {
+    source: string;
+    specifiers: EnhancedImportSpecifier[];
+    raw: string;
+    type: ImportType;
+    start: number;
+    end: number;
+    comments?: string[];
+};
 export type TypeOrder = {
     [key in ImportType]: number;
 };
@@ -64,6 +79,7 @@ export type FormattingOptions = {
     quoteStyle?: 'single' | 'double';
     semicolons?: boolean;
     multilineIndentation?: number | 'tab';
+    preserveComments?: boolean;
 };
 export type SourcePatterns = {
     subfolderPattern?: RegExp;

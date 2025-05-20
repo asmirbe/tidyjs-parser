@@ -7,7 +7,74 @@ const errors_1 = require("./errors");
 const types_1 = require("./types");
 const validator_1 = require("./validator");
 const es_module_lexer_1 = require("es-module-lexer");
+const merger_1 = require("./merger");
 class ImportParser {
+    /**
+     * Méthode avancée pour fusionner les imports à l'aide de es-module-lexer
+     * Remplace la méthode simple mergeImports
+     */
+    async enhancedMergeImports(parsedImports, sourceCode) {
+        try {
+            // Extraire les options de formatage de la configuration
+            const formatting = this.config.formatting || types_1.DEFAULT_CONFIG.formatting || {};
+            // Fusionner les imports en utilisant la nouvelle méthode de merger.ts
+            const enhancedMerged = await (0, merger_1.mergeImports)(sourceCode, {
+                quoteStyle: formatting.quoteStyle,
+                semicolons: formatting.semicolons,
+                multilineIndentation: formatting.multilineIndentation,
+                preserveComments: true,
+            });
+            // Convertir les imports fusionnés au format utilisé par le parser
+            const convertedImports = [];
+            for (const enhancedImport of enhancedMerged) {
+                // Déterminer le type d'import
+                const importType = enhancedImport.type;
+                const source = enhancedImport.source;
+                const isPriority = this.isSourcePriority(source);
+                const groupName = this.determineGroupName(source);
+                // Gérer les sous-dossiers si nécessaire
+                let appSubfolder = null;
+                if (this.patterns.subfolderPattern) {
+                    const match = source.match(this.patterns.subfolderPattern);
+                    if (match?.[1]) {
+                        appSubfolder = match[1];
+                        this.subFolders.add(appSubfolder);
+                    }
+                }
+                // Extraire les spécificateurs en fonction de leur type
+                const importSpecifiers = [];
+                for (const spec of enhancedImport.specifiers) {
+                    if (spec.alias) {
+                        importSpecifiers.push(`${spec.name} as ${spec.alias}`);
+                    }
+                    else {
+                        if (spec.type === "namespace") {
+                            importSpecifiers.push(`* as ${spec.name}`);
+                        }
+                        else {
+                            importSpecifiers.push(spec.name);
+                        }
+                    }
+                }
+                // Créer l'import parsé
+                convertedImports.push({
+                    type: importType,
+                    source,
+                    specifiers: importSpecifiers,
+                    originalmports: enhancedImport.raw,
+                    groupName,
+                    isPriority,
+                    appSubfolder,
+                });
+            }
+            return convertedImports;
+        }
+        catch (error) {
+            console.warn("Erreur lors de la fusion avancée des imports, utilisation de la méthode classique:", error);
+            // Fallback vers la méthode originale en cas d'erreur
+            return this.mergeImports(parsedImports);
+        }
+    }
     extractPatternsFromRegex(regexStr) {
         const match = regexStr.match(/\(\s*([^)]+)\)/);
         if (!match?.[1])
@@ -250,7 +317,7 @@ class ImportParser {
     }
     async parse(sourceCode) {
         const foundGroups = this.detectGroupComments(sourceCode);
-        const originalmports = [];
+        let originalmports = [];
         const invalidImports = [];
         const potentialImportLines = [];
         const lexerResult = await this.findImportRange(sourceCode);
@@ -331,7 +398,8 @@ class ImportParser {
                 });
             }
         }
-        parsedImports = this.mergeImports(parsedImports);
+        parsedImports = await this.enhancedMergeImports(parsedImports, sourceCode);
+        originalmports = parsedImports.map(imp => imp.originalmports);
         for (const foundGroup of foundGroups) {
             const groupImportSources = parsedImports
                 .filter((imp) => {
@@ -646,19 +714,25 @@ class ImportParser {
             const key = `${importObj.type}:${importObj.source}`;
             if (mergedImportsMap.has(key)) {
                 const existingImport = mergedImportsMap.get(key);
+                // Utiliser un Set pour éliminer les doublons
                 const specifiersSet = new Set([...existingImport.specifiers, ...importObj.specifiers]);
+                // Trier les spécificateurs pour une sortie cohérente
                 existingImport.specifiers = Array.from(specifiersSet).sort();
+                // Conserver l'import le plus complet comme base
                 if (cleanedOriginalmports.length > this.cleanImportStatement(existingImport.originalmports).length) {
                     existingImport.originalmports = cleanedOriginalmports;
                 }
+                // Reconstruire l'import pour assurer la cohérence
                 this.validateSpecifiersConsistency(existingImport);
             }
             else {
+                // Nouvel import
                 const newImport = {
                     ...importObj,
                     originalmports: cleanedOriginalmports,
                     specifiers: [...importObj.specifiers].sort(),
                 };
+                // Assurer la cohérence du format
                 this.validateSpecifiersConsistency(newImport);
                 mergedImportsMap.set(key, newImport);
             }

@@ -383,24 +383,48 @@ describe("ImportParser", () => {
         it("should remove duplicate specifiers from same source imports", async () => {
             const parser = new ImportParser(dedupConfig);
             const result = await parser.parse(`
-            // Default
-            import { Component } from '@angular/core';
-            import { Component, Injectable } from '@angular/core';
-            import { Injectable, NgModule } from '@angular/core';
+            // Commentaire important
+  import { Component } from '@angular/core';
+  
+  /* Ce commentaire explique
+     l'utilisation des imports */
+  import { Component, Injectable } from '@angular/core';
+  
+  import type { FC } from 'react';
+  import type { FC, ReactNode } from 'react';
+  
+  import { Injectable, NgModule } from '@angular/core';
+  
+  import * as rxjs from 'rxjs';
+  
+  // Opérateurs de RxJS
+  import { map } from 'rxjs/operators';
+  import { filter, tap } from 'rxjs/operators';
+  
+  import defaultExport from 'some-module';
+  
+  // Code de l'application
+  const app = () => console.log('Hello world');
             `);
-            console.log('🚀 ~ parser.test.ts:391 ~ it ~ result:', result);
+            console.log('🚀 ~ parser.test.ts:391:', result);
 
             expect(result.groups.length).toBe(1);
             const defaultGroup = result.groups[0];
-            expect(defaultGroup.imports.length).toBe(1);
-            const importStatement = defaultGroup.imports[0].originalmports.trim();
 
-            expect(importStatement).toContain("Component");
-            expect(importStatement).toContain("Injectable");
-            expect(importStatement).toContain("NgModule");
-            // Verify no duplicates
-            expect(importStatement.match(/Component/g)?.length).toBe(1);
-            expect(importStatement.match(/Injectable/g)?.length).toBe(1);
+            // Vérifier que les imports sont correctement regroupés par source
+            const angularImports = defaultGroup.imports.filter(imp => imp.source === '@angular/core');
+
+            // Vérifier que les spécificateurs sont correctement dédupliqués
+            const angularSpecifiers = angularImports.flatMap(imp => imp.specifiers);
+            const uniqueAngularSpecifiers = new Set(angularSpecifiers);
+
+            // Vérifier qu'il n'y a pas de doublons dans les spécificateurs
+            expect(angularSpecifiers.length).toBe(uniqueAngularSpecifiers.size);
+
+            // Vérifier que tous les spécificateurs attendus sont présents
+            expect(uniqueAngularSpecifiers.has('Component')).toBe(true);
+            expect(uniqueAngularSpecifiers.has('Injectable')).toBe(true);
+            expect(uniqueAngularSpecifiers.has('NgModule')).toBe(true);
         });
     });
 

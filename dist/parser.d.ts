@@ -5,6 +5,11 @@ declare class ImportParser {
     private readonly patterns;
     private readonly defaultGroup;
     private subFolders;
+    /**
+     * Méthode avancée pour fusionner les imports à l'aide de es-module-lexer
+     * Remplace la méthode simple mergeImports
+     */
+    private enhancedMergeImports;
     private extractPatternsFromRegex;
     private findMatchIndexInRegex;
     constructor(config: ParserConfig);

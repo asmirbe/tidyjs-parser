@@ -17,6 +17,30 @@ export type ImportType = "default" | "named" | "typeDefault" | "typeNamed" | "si
 export type ImportSource = string;
 export type ImportSpecifier = string;
 
+export type SpecifierType =
+  | 'default'      // import Default
+  | 'namespace'    // import * as Something
+  | 'named'        // import { Named }
+  | 'typeDefault'  // import type Default
+  | 'typeNamespace'// import type * as Something
+  | 'typeNamed';   // import type { Named }
+
+export type EnhancedImportSpecifier = {
+  type: SpecifierType;
+  name: string;
+  alias?: string;
+};
+
+export type EnhancedParsedImport = {
+  source: string;
+  specifiers: EnhancedImportSpecifier[];
+  raw: string;
+  type: ImportType;
+  start: number;
+  end: number;
+  comments?: string[]; // commentaires associés
+};
+
 export type TypeOrder = {
   [key in ImportType]: number;
 };
@@ -77,6 +101,7 @@ export type FormattingOptions = {
   quoteStyle?: 'single' | 'double';
   semicolons?: boolean;
   multilineIndentation?: number | 'tab';
+  preserveComments?: boolean;
 };
 
 export type SourcePatterns = {
